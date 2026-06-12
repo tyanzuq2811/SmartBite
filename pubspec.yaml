@@ -59,6 +59,7 @@ dependencies:
   tflite_flutter: ^0.12.1
   image: ^4.8.0
   animations: ^2.2.0
+  flutter_staggered_animations: ^1.1.1
 
 dev_dependencies:
   flutter_test:

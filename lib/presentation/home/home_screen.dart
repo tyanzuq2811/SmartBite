@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animations/animations.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../auth/auth_bloc.dart';
 import '../recipe_detail/recipe_detail_screen.dart';
 import '../../domain/entities/recipe.dart';
@@ -339,9 +340,17 @@ class HomeScreenState extends State<HomeScreen> {
                 onRefresh: () async {
                   context.read<CalorieTrackerCubit>().reset();
                 },
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  children: [
+                child: AnimationLimiter(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    children: AnimationConfiguration.toStaggeredList(
+                      duration: const Duration(milliseconds: 400),
+                      childAnimationBuilder: (widget) => SlideAnimation(
+                        verticalOffset: 40.0,
+                        curve: Curves.easeOutCubic,
+                        child: FadeInAnimation(child: widget),
+                      ),
+                      children: [
                     // --- Greeting Section ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -521,15 +530,23 @@ class HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 220,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
+                      child: AnimationLimiter(
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
                         itemCount: recommendations.length,
                         itemBuilder: (context, index) {
                           final recipe = recommendations[index];
                           // Use a linear gradient for the primary featured recommendation
                           final isFirst = index == 0;
                           
-                           return Container(
+                           return AnimationConfiguration.staggeredList(
+                             position: index,
+                             duration: const Duration(milliseconds: 500),
+                             child: SlideAnimation(
+                               horizontalOffset: 50.0,
+                               curve: Curves.easeOutCubic,
+                               child: FadeInAnimation(
+                                 child: Container(
                              width: 280,
                              margin: const EdgeInsets.only(right: 16, bottom: 8),
                              child: OpenContainer(
@@ -636,8 +653,12 @@ class HomeScreenState extends State<HomeScreen> {
                                  );
                                },
                              ),
+                                 ),
+                               ),
+                             ),
                            );
                         },
+                      ),
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -710,7 +731,9 @@ class HomeScreenState extends State<HomeScreen> {
                         );
                       }),
                     const SizedBox(height: 80), // Padding to avoid overlap with bottom bar & FAB
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
