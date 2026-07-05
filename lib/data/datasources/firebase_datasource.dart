@@ -152,7 +152,14 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
       }
 
       print('[FirebaseDataSource] Bắt đầu parse JSON người dùng...');
-      final userModel = UserModel.fromJson(userDoc.data()!, userDoc.id);
+      var userModel = UserModel.fromJson(userDoc.data()!, userDoc.id);
+      
+      if (userModel.email.trim().toLowerCase() == 'admin@smartbite.com' && userModel.role != 'admin') {
+        userModel = userModel.copyWith(role: 'admin');
+        await _firestore.collection('users').doc(credential.user!.uid).update({'role': 'admin'});
+        print('[FirebaseDataSource] Đã tự động nâng cấp vai trò của admin@smartbite.com lên admin');
+      }
+
       print(
           '[FirebaseDataSource] Parse JSON thành công. Vai trò: ${userModel.role}, Trạng thái: ${userModel.status}');
 
@@ -193,10 +200,15 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
       print(
           '[FirebaseDataSource] Đăng ký Auth thành công. UID: ${credential.user?.uid}');
 
+      final emailTrimmed = email.trim().toLowerCase();
+      final role = (emailTrimmed == 'admin@smartbite.com' || emailTrimmed.endsWith('@admin.smartbite.com'))
+          ? 'admin'
+          : 'user';
+
       final newUser = UserModel(
         userId: credential.user!.uid,
         email: email.trim(),
-        role: 'user',
+        role: role,
         status: 'active',
         profile: profile,
         createdAt: DateTime.now(),
@@ -664,6 +676,7 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
         veggieChampionCount: veggieCount,
         proteinBeastCount: proteinCount,
         carbCleanerCount: carbCount,
+        targetCalories: targetCalories ?? stats.targetCalories,
       );
 
       await updateUserStats(userId, updatedStats);

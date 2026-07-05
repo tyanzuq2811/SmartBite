@@ -14,6 +14,7 @@ class UserStatsModel {
   final int veggieChampionCount;
   final int proteinBeastCount;
   final int carbCleanerCount;
+  final int targetCalories;
 
   const UserStatsModel({
     required this.streak,
@@ -28,6 +29,7 @@ class UserStatsModel {
     required this.veggieChampionCount,
     required this.proteinBeastCount,
     required this.carbCleanerCount,
+    required this.targetCalories,
   });
 
   factory UserStatsModel.initial() {
@@ -52,6 +54,7 @@ class UserStatsModel {
       veggieChampionCount: 0,
       proteinBeastCount: 0,
       carbCleanerCount: 0,
+      targetCalories: 2000,
     );
   }
 
@@ -92,6 +95,7 @@ class UserStatsModel {
       veggieChampionCount: (json['veggie_champion_count'] as num?)?.toInt() ?? 0,
       proteinBeastCount: (json['protein_beast_count'] as num?)?.toInt() ?? 0,
       carbCleanerCount: (json['carb_cleaner_count'] as num?)?.toInt() ?? 0,
+      targetCalories: (json['target_calories'] as num?)?.toInt() ?? 2000,
     );
   }
 
@@ -110,6 +114,7 @@ class UserStatsModel {
       'veggie_champion_count': veggieChampionCount,
       'protein_beast_count': proteinBeastCount,
       'carb_cleaner_count': carbCleanerCount,
+      'target_calories': targetCalories,
     };
   }
 
@@ -126,6 +131,7 @@ class UserStatsModel {
     int? veggieChampionCount,
     int? proteinBeastCount,
     int? carbCleanerCount,
+    int? targetCalories,
   }) {
     return UserStatsModel(
       streak: streak ?? this.streak,
@@ -140,6 +146,7 @@ class UserStatsModel {
       veggieChampionCount: veggieChampionCount ?? this.veggieChampionCount,
       proteinBeastCount: proteinBeastCount ?? this.proteinBeastCount,
       carbCleanerCount: carbCleanerCount ?? this.carbCleanerCount,
+      targetCalories: targetCalories ?? this.targetCalories,
     );
   }
 }
