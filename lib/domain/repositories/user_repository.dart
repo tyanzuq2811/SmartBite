@@ -15,4 +15,11 @@ abstract class UserRepository {
   // Admin-specific operations
   Future<List<UserEntity>> getAllUsers();
   Future<void> updateUserStatus(String userId, String status); // 'active' | 'banned'
+  Future<void> adminUpdateUser(
+    String userId, {
+    required String name,
+    required String email,
+    required String role,
+    required String status,
+  });
 }

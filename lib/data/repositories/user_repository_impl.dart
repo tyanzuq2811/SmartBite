@@ -113,4 +113,25 @@ class UserRepositoryImpl implements UserRepository {
       throw ServerFailure(e.toString());
     }
   }
+
+  @override
+  Future<void> adminUpdateUser(
+    String userId, {
+    required String name,
+    required String email,
+    required String role,
+    required String status,
+  }) async {
+    try {
+      await firebaseDataSource.adminUpdateUser(
+        userId,
+        name: name,
+        email: email,
+        role: role,
+        status: status,
+      );
+    } catch (e) {
+      throw ServerFailure(e.toString());
+    }
+  }
 }

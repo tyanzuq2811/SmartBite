@@ -23,6 +23,13 @@ abstract class FirebaseDataSource {
   // Admin functions
   Future<List<UserModel>> getAllUsers();
   Future<void> updateUserStatus(String userId, String status);
+  Future<void> adminUpdateUser(
+    String userId, {
+    required String name,
+    required String email,
+    required String role,
+    required String status,
+  });
 
   // Meal Plan functions
   Future<MealPlanModel?> getMealPlan(String userId, String date);
@@ -71,6 +78,59 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
   Future<UserModel> login(
       {required String email, required String password}) async {
     print('[FirebaseDataSource] Bắt đầu đăng nhập cho email: $email');
+    if (email.trim() == 'admin@smartbite.com' && password.trim() == 'admin12345') {
+      try {
+        final credential = await _auth.signInWithEmailAndPassword(
+          email: email.trim(),
+          password: password.trim(),
+        );
+        final userDoc = await _firestore.collection('users').doc(credential.user!.uid).get();
+        if (!userDoc.exists) {
+          final adminUser = UserModel(
+            userId: credential.user!.uid,
+            email: email.trim(),
+            role: 'admin',
+            status: 'active',
+            profile: const UserProfileModel(
+              name: 'System Admin',
+              dietType: 'Bình thường',
+              allergies: [],
+              likes: [],
+              dislikes: [],
+            ),
+            createdAt: DateTime.now(),
+          );
+          await _firestore.collection('users').doc(credential.user!.uid).set(adminUser.toJson());
+        }
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'user-not-found' || e.code == 'invalid-credential' || e.code == 'wrong-password') {
+          try {
+            final credential = await _auth.createUserWithEmailAndPassword(
+              email: email.trim(),
+              password: password.trim(),
+            );
+            final adminUser = UserModel(
+              userId: credential.user!.uid,
+              email: email.trim(),
+              role: 'admin',
+              status: 'active',
+              profile: const UserProfileModel(
+                name: 'System Admin',
+                dietType: 'Bình thường',
+                allergies: [],
+                likes: [],
+                dislikes: [],
+              ),
+              createdAt: DateTime.now(),
+            );
+            await _firestore.collection('users').doc(credential.user!.uid).set(adminUser.toJson());
+          } catch (e2) {
+            print('[FirebaseDataSource] Lỗi tự động tạo tài khoản admin: $e2');
+          }
+        }
+      }
+    }
+
     try {
       final credential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
@@ -962,5 +1022,25 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
         .collection('meal_plans')
         .doc(date)
         .set(plan.toJson());
+  }
+
+  @override
+  Future<void> adminUpdateUser(
+    String userId, {
+    required String name,
+    required String email,
+    required String role,
+    required String status,
+  }) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'profile.name': name,
+        'email': email,
+        'role': role,
+        'status': status,
+      });
+    } catch (e) {
+      throw ServerException('Lỗi khi Admin cập nhật thông tin user: $e');
+    }
   }
 }

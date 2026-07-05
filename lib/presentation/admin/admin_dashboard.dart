@@ -67,6 +67,184 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
+  Future<void> _resetUserPassword(UserEntity user) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Gửi email đặt lại mật khẩu'),
+        content: Text('Hệ thống sẽ gửi một email đặt lại mật khẩu tự động đến địa chỉ "${user.email}". Bạn có chắc chắn muốn thực hiện?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orangeAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Gửi'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      try {
+        final repo = context.read<UserRepository>();
+        await repo.resetPassword(user.email);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã gửi email khôi phục mật khẩu tới ${user.email} thành công!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi gửi email: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _editUser(UserEntity user) async {
+    final nameController = TextEditingController(text: user.profile.name);
+    final emailController = TextEditingController(text: user.email);
+    String selectedRole = user.role;
+    String selectedStatus = user.status;
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Chỉnh sửa tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Họ và tên',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedRole,
+                      decoration: const InputDecoration(
+                        labelText: 'Quyền hạn (Role)',
+                        prefixIcon: Icon(Icons.admin_panel_settings_outlined),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'user', child: Text('User (Thành viên)')),
+                        DropdownMenuItem(value: 'admin', child: Text('Admin (Quản trị)')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedRole = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedStatus,
+                      decoration: const InputDecoration(
+                        labelText: 'Trạng thái hoạt động',
+                        prefixIcon: Icon(Icons.toggle_on_outlined),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'active', child: Text('Active (Đang hoạt động)')),
+                        DropdownMenuItem(value: 'banned', child: Text('Banned (Đã bị khóa)')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedStatus = val);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Hủy'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Cập nhật'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (updated == true && mounted) {
+      final name = nameController.text.trim();
+      final email = emailController.text.trim();
+      if (name.isEmpty || email.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vui lòng điền đầy đủ các thông tin!'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        final repo = context.read<UserRepository>();
+        await repo.adminUpdateUser(
+          user.userId,
+          name: name,
+          email: email,
+          role: selectedRole,
+          status: selectedStatus,
+        );
+        
+        if (mounted) Navigator.pop(context);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cập nhật tài khoản thành công!'), backgroundColor: Colors.green),
+          );
+          _loadUsers();
+        }
+      } catch (e) {
+        if (mounted) Navigator.pop(context);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi cập nhật: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -158,13 +336,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                     ),
                                   ),
                                   DataCell(
-                                    // Ban/Unban Toggle Switch
-                                    Switch(
-                                      value: isBanned,
-                                      activeThumbColor: Colors.redAccent,
-                                      onChanged: (val) {
-                                        _toggleUserStatus(user, val);
-                                      },
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 20),
+                                          onPressed: () => _editUser(user),
+                                          tooltip: 'Chỉnh sửa tài khoản',
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.vpn_key_outlined, color: Colors.orangeAccent, size: 20),
+                                          onPressed: () => _resetUserPassword(user),
+                                          tooltip: 'Gửi link đặt lại mật khẩu',
+                                        ),
+                                        Switch(
+                                          value: isBanned,
+                                          activeThumbColor: Colors.redAccent,
+                                          onChanged: (val) {
+                                            _toggleUserStatus(user, val);
+                                          },
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
