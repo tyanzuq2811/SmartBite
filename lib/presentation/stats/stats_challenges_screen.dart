@@ -309,12 +309,17 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                   const SizedBox(height: 4),
                   Text(
                     stats.streak > 0
-                        ? (Localizations.localeOf(context).languageCode == 'vi' ? 'Bạn đang có phong độ tuyệt vời! Tiếp tục duy trì nhé.' : 'You are in great shape! Keep it up.')
-                        : (Localizations.localeOf(context).languageCode == 'vi' ? 'Hãy bắt đầu chuỗi ăn sạch đầu tiên nhé!' : 'Let\'s start your first clean eating streak!'),
+                        ? (Localizations.localeOf(context).languageCode == 'vi' 
+                            ? '🔥 Bạn đã duy trì chuỗi ${stats.streak} ngày ăn sạch! Hãy tiếp tục nạp calo đạt mục tiêu hôm nay để bảo vệ chuỗi Streak, tránh bị reset sau 48h.' 
+                            : '🔥 You have kept a ${stats.streak}-day streak! Eat within 80%-105% of your target today to protect your streak from resetting after 48h.')
+                        : (Localizations.localeOf(context).languageCode == 'vi' 
+                            ? 'Hãy đạt lượng calo từ 80% - 105% mục tiêu ngày hôm nay để kích hoạt chuỗi Streak ăn sạch đầu tiên của bạn!' 
+                            : 'Reach 80% - 105% of your target calories today to start your first clean eating streak!'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: stats.streak > 0 ? Colors.orange[800] : Colors.grey[600],
                       fontSize: 13,
+                      fontWeight: stats.streak > 0 ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -322,9 +327,10 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                   // Weekly streak dot tracker
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: stats.streakDays.entries.map((entry) {
+                    children: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((dayKey) {
+                      final hasStreak = stats.streakDays[dayKey] ?? false;
                       final isVi = Localizations.localeOf(context).languageCode == 'vi';
-                      var displayDay = entry.key;
+                      var displayDay = dayKey;
                       if (!isVi) {
                         final mapping = {
                           'T2': 'Mon',
@@ -335,12 +341,11 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                           'T7': 'Sat',
                           'CN': 'Sun',
                         };
-                        displayDay = mapping[entry.key] ?? entry.key;
+                        displayDay = mapping[dayKey] ?? dayKey;
                       }
-                      final isCurrent =
-                          entry.key == _getCurrentDayLabelViOnly();
+                      final isCurrent = dayKey == _getCurrentDayLabelViOnly();
                       return _buildStreakDot(
-                          displayDay, entry.value, isCurrent: isCurrent);
+                          displayDay, hasStreak, isCurrent: isCurrent);
                     }).toList(),
                   ),
                 ],
