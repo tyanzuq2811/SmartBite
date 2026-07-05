@@ -515,16 +515,19 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
           if (_ingredients.isEmpty)
             Expanded(
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.shopping_basket_outlined, size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-                    const SizedBox(height: 12),
-                    Text(
-                      Localizations.localeOf(context).languageCode == 'vi' ? 'Rổ trống. Hãy thêm nguyên liệu!' : 'Basket is empty. Please add ingredients!',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                    ),
-                  ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.shopping_basket_outlined, size: 36, color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                      const SizedBox(height: 8),
+                      Text(
+                        Localizations.localeOf(context).languageCode == 'vi' ? 'Rổ trống. Hãy thêm nguyên liệu!' : 'Basket is empty. Please add ingredients!',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             )
