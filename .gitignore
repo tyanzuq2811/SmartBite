@@ -44,10 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Only allow main.pdf in Template_BCTT_DATN
-/Template_BCTT_DATN/*
-!/Template_BCTT_DATN/main.pdf
-
 # Local environment variables
 .env
 
