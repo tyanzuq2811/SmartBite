@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/constants/app_theme.dart';
+import '../../core/localization/app_localizations.dart';
 import '../shared/widgets.dart';
 import 'auth_bloc.dart';
 
@@ -33,18 +34,18 @@ class _LoginScreenState extends State<LoginScreen> {
     // Validate email format
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (email.isEmpty) {
-      _emailError = 'Email không được để trống';
+      _emailError = context.translate('enterEmail');
     } else if (!emailRegex.hasMatch(email)) {
-      _emailError = 'Vui lòng nhập định dạng email hợp lệ (vd: abc@gmail.com)';
+      _emailError = context.translate('invalidEmail');
     } else {
       _emailError = null;
     }
 
     // Validate password length
     if (password.isEmpty) {
-      _passwordError = 'Mật khẩu không được để trống';
+      _passwordError = context.translate('enterPassword');
     } else if (password.length < 6) {
-      _passwordError = 'Mật khẩu phải có ít nhất 6 ký tự';
+      _passwordError = context.translate('passwordTooShort');
     } else {
       _passwordError = null;
     }
@@ -66,8 +67,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (email.isEmpty || !emailRegex.hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập một email hợp lệ ở ô đăng nhập để khôi phục!'),
+        SnackBar(
+          content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Vui lòng nhập một email hợp lệ ở ô đăng nhập để khôi phục!' : 'Please enter a valid email to recover your password!'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -101,11 +102,15 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           } else if (state is PasswordResetSent) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Đã gửi link khôi phục mật khẩu vào hòm thư của bạn!'),
+              SnackBar(
+                content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Đã gửi link khôi phục mật khẩu vào hòm thư của bạn!' : 'Password reset link sent to your inbox!'),
                 backgroundColor: Colors.green,
               ),
             );
+          } else if (state is AuthenticatedUser) {
+            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          } else if (state is AuthenticatedAdmin) {
+            Navigator.pushNamedAndRemoveUntil(context, '/admin', (route) => false);
           }
         },
         builder: (context, state) {
@@ -147,21 +152,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 4),
                   Center(
                     child: Text(
-                      'Dinh dưỡng cá nhân hóa & Gợi ý món ăn thông minh',
+                      Localizations.localeOf(context).languageCode == 'vi' ? 'Dinh dưỡng cá nhân hóa & Gợi ý món ăn thông minh' : 'Personalized Nutrition & Smart Recipe Recommendations',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isDark ? AppColors.onSurfaceVariantDark : AppColors.onSurfaceVariant,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                   const SizedBox(height: 48),
                   Text(
-                    'Đăng Nhập',
+                    context.translate('login'),
                     style: theme.textTheme.titleLarge?.copyWith(fontSize: 24),
                   ),
                   const SizedBox(height: 24),
                   CustomTextField(
                     controller: _emailController,
-                    labelText: 'Địa chỉ Email',
+                    labelText: context.translate('email'),
                     hintText: 'abc@gmail.com',
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
@@ -170,8 +176,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 20),
                   CustomTextField(
                     controller: _passwordController,
-                    labelText: 'Mật khẩu',
-                    hintText: 'Nhập ít nhất 6 ký tự',
+                    labelText: context.translate('password'),
+                    hintText: Localizations.localeOf(context).languageCode == 'vi' ? 'Nhập ít nhất 6 ký tự' : 'Enter at least 6 characters',
                     prefixIcon: Icons.lock_outline_rounded,
                     obscureText: true,
                     errorText: _passwordController.text.isNotEmpty ? _passwordError : null,
@@ -181,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: TextButton(
                       onPressed: isLoading ? null : _forgotPassword,
                       child: Text(
-                        'Quên mật khẩu?',
+                        Localizations.localeOf(context).languageCode == 'vi' ? 'Quên mật khẩu?' : 'Forgot password?',
                         style: TextStyle(
                           color: isDark ? AppColors.primaryDark : AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -191,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   GradientButton(
-                    text: 'ĐĂNG NHẬP',
+                    text: context.translate('login').toUpperCase(),
                     isLoading: isLoading,
                     onPressed: _isFormValid
                         ? () {
@@ -209,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Chưa có tài khoản? ',
+                        Localizations.localeOf(context).languageCode == 'vi' ? 'Chưa có tài khoản? ' : "Don't have an account? ",
                         style: theme.textTheme.bodyMedium,
                       ),
                       GestureDetector(
@@ -217,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.pushNamed(context, '/register');
                         },
                         child: Text(
-                          'Đăng ký ngay',
+                          Localizations.localeOf(context).languageCode == 'vi' ? 'Đăng ký ngay' : 'Register now',
                           style: TextStyle(
                             color: isDark ? AppColors.primaryDark : AppColors.primary,
                             fontWeight: FontWeight.bold,

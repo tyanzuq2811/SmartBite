@@ -7,6 +7,9 @@ import '../auth/auth_bloc.dart';
 import '../recipe_detail/recipe_detail_screen.dart';
 import '../shared/widgets.dart';
 import '../../data/datasources/on_device_detector.dart';
+import '../../data/datasources/firebase_datasource.dart';
+import '../../core/di/injection.dart';
+import '../../core/localization/app_localizations.dart';
 
 class InputHubScreen extends StatefulWidget {
   const InputHubScreen({super.key});
@@ -22,11 +25,18 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
   bool _isFlashOn = false;
 
   // Autocomplete mock suggestions
-  final List<String> _suggestions = [
-    'Thịt bò', 'Thịt heo', 'Ức gà', 'Cá hồi', 'Tôm tươi',
-    'Cà chua', 'Khoai tây', 'Cà rốt', 'Bông cải xanh', 'Hành tây',
-    'Nấm hương', 'Rau bina', 'Trứng gà', 'Phô mai', 'Đậu hũ'
-  ];
+  List<String> get _suggestions {
+    final isVi = Localizations.localeOf(context).languageCode == 'vi';
+    return isVi ? [
+      'Thịt bò', 'Thịt heo', 'Ức gà', 'Cá hồi', 'Tôm tươi',
+      'Cà chua', 'Khoai tây', 'Cà rốt', 'Bông cải xanh', 'Hành tây',
+      'Nấm hương', 'Rau bina', 'Trứng gà', 'Phô mai', 'Đậu hũ'
+    ] : [
+      'Beef', 'Pork', 'Chicken Breast', 'Salmon', 'Fresh Shrimp',
+      'Tomato', 'Potato', 'Carrot', 'Broccoli', 'Onion',
+      'Shiitake Mushroom', 'Spinach', 'Chicken Eggs', 'Cheese', 'Tofu'
+    ];
+  }
 
   @override
   void initState() {
@@ -49,14 +59,14 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
     final sanitized = clean.replaceAll(RegExp(r'[^\p{L}\p{N}\s]', unicode: true), '');
     if (sanitized.length > 30) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tên nguyên liệu không quá 30 ký tự.'), backgroundColor: Colors.orange),
+        SnackBar(content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Tên nguyên liệu không quá 30 ký tự.' : 'Ingredient name cannot exceed 30 characters.'), backgroundColor: Colors.orange),
       );
       return;
     }
     
     if (sanitized.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tên nguyên liệu không hợp lệ.'), backgroundColor: Colors.red),
+        SnackBar(content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Tên nguyên liệu không hợp lệ.' : 'Invalid ingredient name.'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -87,7 +97,7 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể chọn ảnh: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Không thể chọn ảnh: $e' : 'Cannot pick image: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -99,8 +109,8 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: PremiumLoader(text: 'AI cục bộ đang quét thực phẩm...'),
+      builder: (context) => Center(
+        child: PremiumLoader(text: Localizations.localeOf(context).languageCode == 'vi' ? 'AI cục bộ đang quét thực phẩm...' : 'Local AI is scanning food...'),
       ),
     );
 
@@ -128,11 +138,11 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🤖 Đã phát hiện: ${detected.join(", ")}. Bạn có thể chỉnh sửa rổ nguyên liệu!'),
+          content: Text(Localizations.localeOf(context).languageCode == 'vi' ? '🤖 Đã phát hiện: ${detected.join(", ")}. Bạn có thể chỉnh sửa rổ nguyên liệu!' : '🤖 Detected: ${detected.join(", ")}. You can edit your ingredient basket!'),
           backgroundColor: theme.colorScheme.primary,
           duration: const Duration(seconds: 4),
           action: SnackBarAction(
-            label: 'TẠO NGAY',
+            label: Localizations.localeOf(context).languageCode == 'vi' ? 'TẠO NGAY' : 'CREATE NOW',
             textColor: Colors.white,
             onPressed: _submitIngredients,
           ),
@@ -150,7 +160,7 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
   void _submitIngredients() {
     if (_ingredients.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng thêm ít nhất một nguyên liệu!'), backgroundColor: Colors.orange),
+        SnackBar(content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Vui lòng thêm ít nhất một nguyên liệu!' : 'Please add at least one ingredient!'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -173,18 +183,18 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Hình ảnh không hợp lệ'),
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Hình ảnh không hợp lệ' : 'Invalid Image'),
           ],
         ),
-        content: const Text('Tôi không thấy nguyên liệu hay thực phẩm nào ở đây, bạn vui lòng chụp lại nhé!'),
+        content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Tôi không thấy nguyên liệu hay thực phẩm nào ở đây, bạn vui lòng chụp lại nhé!' : 'I did not see any ingredients or food here, please take another photo!'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Đồng ý', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+            child: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Đồng ý' : 'Agree', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
           ),
         ],
       ),
@@ -199,6 +209,17 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
     return BlocConsumer<AiRecipeCubit, AiRecipeState>(
       listener: (context, state) {
         if (state is AiRecipeSuccess) {
+          final authState = context.read<AuthBloc>().state;
+          String? userId;
+          if (authState is AuthenticatedUser) userId = authState.user.userId;
+          if (authState is AuthenticatedAdmin) userId = authState.user.userId;
+          if (userId != null) {
+            getIt<FirebaseDataSource>().updateGamificationAfterAction(
+              userId,
+              aiRecipeCreated: true,
+            );
+          }
+
           // Open detail screen
           Navigator.push(
             context,
@@ -216,7 +237,7 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
               context: context,
               builder: (context) => AlertDialog(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                title: const Text('AI thông báo'),
+                title: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'AI thông báo' : 'AI Notification'),
                 content: Text(state.message),
                 actions: [
                   TextButton(
@@ -224,7 +245,7 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
                       Navigator.pop(context);
                       context.read<AiRecipeCubit>().reset();
                     },
-                    child: const Text('Thử lại', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Thử lại' : 'Try Again', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -234,27 +255,27 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
       },
       builder: (context, state) {
         if (state is AiRecipeImageAnalyzing) {
-          return const Scaffold(
-            body: PremiumLoader(text: 'Đang phân tích hình ảnh bằng AI cục bộ (Offline)...'),
+          return Scaffold(
+            body: PremiumLoader(text: Localizations.localeOf(context).languageCode == 'vi' ? 'Đang phân tích hình ảnh bằng AI cục bộ (Offline)...' : 'Analyzing image with local AI (Offline)...'),
           );
         }
         if (state is AiRecipeGenerating) {
-          return const Scaffold(
-            body: PremiumLoader(text: 'Đang chế biến công thức từ cơ sở dữ liệu...'),
+          return Scaffold(
+            body: PremiumLoader(text: Localizations.localeOf(context).languageCode == 'vi' ? 'Đang chế biến công thức từ cơ sở dữ liệu...' : 'Preparing recipe from database...'),
           );
         }
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Nhập liệu nguyên liệu', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Nhập liệu nguyên liệu' : 'Input Ingredients', style: const TextStyle(fontWeight: FontWeight.bold)),
             bottom: TabBar(
               controller: _tabController,
               indicatorColor: theme.colorScheme.primary,
               labelColor: theme.colorScheme.primary,
               unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
-              tabs: const [
-                Tab(icon: Icon(Icons.camera_alt), text: 'Quét nguyên liệu'),
-                Tab(icon: Icon(Icons.edit_note), text: 'Nhập thủ công'),
+              tabs: [
+                Tab(icon: const Icon(Icons.camera_alt), text: Localizations.localeOf(context).languageCode == 'vi' ? 'Quét nguyên liệu' : 'Scan Ingredients'),
+                Tab(icon: const Icon(Icons.edit_note), text: Localizations.localeOf(context).languageCode == 'vi' ? 'Nhập thủ công' : 'Manual Entry'),
               ],
             ),
           ),
@@ -286,14 +307,14 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
             children: [
               Icon(Icons.restaurant, color: Colors.white.withValues(alpha: 0.1), size: 120),
               const SizedBox(height: 16),
-              const Text(
-                'Hướng camera về phía thực phẩm',
-                style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                Localizations.localeOf(context).languageCode == 'vi' ? 'Hướng camera về phía thực phẩm' : 'Point camera at the food',
+                style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'AI Cục Bộ (Offline 100%) tự động nhận diện nguyên liệu.',
-                style: TextStyle(color: Colors.white54, fontSize: 13),
+              Text(
+                Localizations.localeOf(context).languageCode == 'vi' ? 'AI Cục Bộ (Offline 100%) tự động nhận diện nguyên liệu.' : 'Local AI (100% Offline) automatically detects ingredients.',
+                style: const TextStyle(color: Colors.white54, fontSize: 13),
               ),
             ],
           ),
@@ -345,9 +366,9 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
                   });
                 },
               ),
-              const Text(
-                'GÓC CANH CHUẨN',
-                style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+              Text(
+                Localizations.localeOf(context).languageCode == 'vi' ? 'GÓC CANH CHUẨN' : 'PERFECT ANGLE',
+                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5),
               ),
               IconButton(
                 style: IconButton.styleFrom(backgroundColor: Colors.black45),
@@ -391,9 +412,9 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Bấm nút đỏ để quét mô phỏng, hoặc dùng icon Thư viện',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+              Text(
+                Localizations.localeOf(context).languageCode == 'vi' ? 'Bấm nút đỏ để quét mô phỏng, hoặc dùng icon Thư viện' : 'Tap the red button to simulate scanning, or use the Gallery icon',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               )
             ],
           ),
@@ -414,7 +435,7 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Nhập các nguyên liệu bạn đang có',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Nhập các nguyên liệu bạn đang có' : 'Enter ingredients you have',
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -424,8 +445,10 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
             controller: _textController,
             onChanged: (_) => setState(() {}),
             onSubmitted: _addIngredient,
+            enableSuggestions: false,
+            autocorrect: false,
             decoration: InputDecoration(
-              hintText: 'Ví dụ: Thịt bò, Cà chua...',
+              hintText: Localizations.localeOf(context).languageCode == 'vi' ? 'Ví dụ: Thịt bò, Cà chua...' : 'E.g., Beef, Tomato...',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _textController.text.isNotEmpty
                   ? IconButton(
@@ -449,17 +472,22 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
               ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: suggestions.length,
-                itemBuilder: (context, index) {
-                  final item = suggestions[index];
-                  return ListTile(
-                    title: Text(item),
-                    trailing: const Icon(Icons.add, size: 16),
-                    onTap: () => _addIngredient(item),
-                  );
-                },
+               child: Material(
+                color: Colors.transparent,
+                clipBehavior: Clip.antiAlias,
+                borderRadius: BorderRadius.circular(12),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: suggestions.length,
+                  itemBuilder: (context, index) {
+                    final item = suggestions[index];
+                    return ListTile(
+                      title: Text(item),
+                      trailing: const Icon(Icons.add, size: 16),
+                      onTap: () => _addIngredient(item),
+                    );
+                  },
+                ),
               ),
             ),
           ],
@@ -471,13 +499,13 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Rổ nguyên liệu của bạn (${_ingredients.length})',
+                Localizations.localeOf(context).languageCode == 'vi' ? 'Rổ nguyên liệu của bạn (${_ingredients.length})' : 'Your ingredient basket (${_ingredients.length})',
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               if (_ingredients.isNotEmpty)
                 TextButton(
                   onPressed: () => setState(() => _ingredients.clear()),
-                  child: const Text('Xoá tất cả', style: TextStyle(color: Colors.red)),
+                  child: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Xoá tất cả' : 'Clear All', style: const TextStyle(color: Colors.red)),
                 )
             ],
           ),
@@ -493,7 +521,7 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
                     Icon(Icons.shopping_basket_outlined, size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                     const SizedBox(height: 12),
                     Text(
-                      'Rổ trống. Hãy thêm nguyên liệu!',
+                      Localizations.localeOf(context).languageCode == 'vi' ? 'Rổ trống. Hãy thêm nguyên liệu!' : 'Basket is empty. Please add ingredients!',
                       style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
                     ),
                   ],
@@ -529,7 +557,7 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
               height: 52,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.auto_awesome),
-                label: const Text('SÁNG TẠO CÔNG THỨC NGAY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                label: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'SÁNG TẠO CÔNG THỨC NGAY' : 'GENERATE RECIPE NOW', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 onPressed: _submitIngredients,
               ),
             ),

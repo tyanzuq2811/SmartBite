@@ -26,11 +26,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
     this.connectivityService,
   );
 
-  // Check if GEMINI_API_KEY environment variable is defined
-  bool get _hasApiKey {
-    const key = String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
-    return key.isNotEmpty;
-  }
+  bool get _hasApiKey => geminiDataSource.hasApiKey;
 
   RecipeModel _mapRowToRecipe(Map<String, dynamic> row) {
     return RecipeModel(
@@ -121,10 +117,35 @@ class RecipeRepositoryImpl implements RecipeRepository {
   @override
   Future<List<Recipe>> getSavedRecipes() async {
     try {
+      final hasInternet = await connectivityService.isConnected;
+      final user = _currentUser;
+      final firestore = _firestore;
+
+      if (hasInternet && user != null && firestore != null) {
+        try {
+          final snapshot = await firestore
+              .collection('users')
+              .doc(user.uid)
+              .collection('saved_recipes')
+              .get();
+          
+          final List<Recipe> recipes = [];
+          for (var doc in snapshot.docs) {
+            final data = doc.data();
+            recipes.add(_mapRowToRecipe(data));
+            // Cập nhật SQLite để đồng bộ offline
+            await sqliteHelper.insertRecipe(data);
+          }
+          return recipes;
+        } catch (e) {
+          print('[RecipeRepository] Lỗi tải từ Firestore: $e. Sử dụng SQLite fallback.');
+        }
+      }
+
       final list = await sqliteHelper.queryAllRecipes();
       return list.map((row) => _mapRowToRecipe(row)).toList();
     } catch (e) {
-      throw ServerException('Lỗi khi tải công thức đã lưu từ SQLite: $e');
+      throw ServerException('Lỗi khi tải công thức đã lưu: $e');
     }
   }
 

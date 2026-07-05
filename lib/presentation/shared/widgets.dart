@@ -47,6 +47,8 @@ class CustomTextField extends StatelessWidget {
           obscureText: obscureText,
           keyboardType: keyboardType,
           onChanged: onChanged,
+          enableSuggestions: false,
+          autocorrect: false,
           style: theme.textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: hintText,
@@ -213,33 +215,6 @@ class PremiumLoader extends StatelessWidget {
   }
 }
 
-class _Macro {
-  final int p;
-  final int c;
-  final int f;
-  const _Macro({required this.p, required this.c, required this.f});
-}
-
-const Map<String, _Macro> _recipeMacros = {
-  'Smoothie Việt Quất': _Macro(p: 6, c: 32, f: 5),
-  'Cá Tuyết Hấp Tàu Xì': _Macro(p: 28, c: 12, f: 8),
-  'Salad Ức Gà Sốt Sữa Chua': _Macro(p: 32, c: 10, f: 6),
-  'Cá Hồi Áp Chảo Sốt Chanh Dây': _Macro(p: 26, c: 8, f: 18),
-  'Bò Né Cà Chua': _Macro(p: 30, c: 12, f: 20),
-  'Trứng Cuộn Hành Tây & Nấm': _Macro(p: 12, c: 4, f: 11),
-  'Canh Cà Chua Trứng': _Macro(p: 6, c: 8, f: 7),
-  'Thịt Heo Luộc Sốt Tỏi Ớt': _Macro(p: 24, c: 2, f: 22),
-  'Súp Bí Đỏ Thịt Băm': _Macro(p: 14, c: 22, f: 8),
-  'Tôm Rim Tỏi Gừng': _Macro(p: 22, c: 4, f: 6),
-  'Cải Bó Xôi Xào Thịt Bò': _Macro(p: 18, c: 6, f: 14),
-  'Bắp Cải Cuộn Thịt Hấp': _Macro(p: 18, c: 12, f: 10),
-  'Dưa Leo Trộn Chua Ngọt': _Macro(p: 1, c: 14, f: 0),
-  'Cơm Chiên Dương Châu Sức Khỏe': _Macro(p: 12, c: 55, f: 10),
-  'Canh Bí Đỏ Thịt Heo': _Macro(p: 12, c: 18, f: 7),
-  'Nấm Hương Kho Đậu Hũ': _Macro(p: 10, c: 15, f: 9),
-  'Sữa Đậu Nành Tự Nhiên': _Macro(p: 7, c: 12, f: 4),
-};
-
 class CaloriesRing extends StatefulWidget {
   final int currentCalories;
   final int targetCalories;
@@ -266,10 +241,6 @@ class _CaloriesRingState extends State<CaloriesRing> with SingleTickerProviderSt
   late double _fatProgress;
 
   // Real macros values for display
-  late int _carbsConsumed;
-  late int _proteinConsumed;
-  late int _fatConsumed;
-
   late int _carbsTarget;
   late int _proteinTarget;
   late int _fatTarget;
@@ -292,44 +263,15 @@ class _CaloriesRingState extends State<CaloriesRing> with SingleTickerProviderSt
     _proteinTarget = (widget.targetCalories * 0.3 / 4).round();
     _fatTarget = (widget.targetCalories * 0.3 / 9).round();
 
-    int pSum = 0;
-    int cSum = 0;
-    int fSum = 0;
-    int recipeCaloriesSum = 0;
+    // Estimate consumed macros from total consumed calories using 40/30/30 ratio
+    final consumed = widget.currentCalories;
+    final carbsConsumed = (consumed * 0.4 / 4).round();
+    final proteinConsumed = (consumed * 0.3 / 4).round();
+    final fatConsumed = (consumed * 0.3 / 9).round();
 
-    widget.eatenRecipes.forEach((recipeName, isEaten) {
-      if (isEaten) {
-        final macro = _recipeMacros[recipeName];
-        if (macro != null) {
-          pSum += macro.p;
-          cSum += macro.c;
-          fSum += macro.f;
-          recipeCaloriesSum += (macro.p * 4 + macro.c * 4 + macro.f * 9);
-        } else {
-          // Estimate macros if recipe details are not in static map
-          const avgCal = 300;
-          pSum += (avgCal * 0.3 / 4).round();
-          cSum += (avgCal * 0.4 / 4).round();
-          fSum += (avgCal * 0.3 / 9).round();
-          recipeCaloriesSum += avgCal;
-        }
-      }
-    });
-
-    final remainingCalories = widget.currentCalories - recipeCaloriesSum;
-    if (remainingCalories > 0) {
-      cSum += (remainingCalories * 0.4 / 4).round();
-      pSum += (remainingCalories * 0.3 / 4).round();
-      fSum += (remainingCalories * 0.3 / 9).round();
-    }
-
-    _carbsConsumed = cSum;
-    _proteinConsumed = pSum;
-    _fatConsumed = fSum;
-
-    _carbsProgress = _carbsTarget > 0 ? _carbsConsumed / _carbsTarget : 0.0;
-    _proteinProgress = _proteinTarget > 0 ? _proteinConsumed / _proteinTarget : 0.0;
-    _fatProgress = _fatTarget > 0 ? _fatConsumed / _fatTarget : 0.0;
+    _carbsProgress = _carbsTarget > 0 ? carbsConsumed / _carbsTarget : 0.0;
+    _proteinProgress = _proteinTarget > 0 ? proteinConsumed / _proteinTarget : 0.0;
+    _fatProgress = _fatTarget > 0 ? fatConsumed / _fatTarget : 0.0;
   }
 
   @override
@@ -376,12 +318,18 @@ class _CaloriesRingState extends State<CaloriesRing> with SingleTickerProviderSt
                 children: [
                   Text(
                     '${widget.currentCalories}',
-                    style: theme.textTheme.titleLarge?.copyWith(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: widget.currentCalories > widget.targetCalories ? Colors.redAccent : null,
+                    ),
                   ),
                   Text(
-                    'kcal nạp',
+                    'calo nạp',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isDark ? AppColors.onSurfaceVariantDark : AppColors.onSurfaceVariant,
+                      color: widget.currentCalories > widget.targetCalories 
+                          ? Colors.redAccent 
+                          : (isDark ? AppColors.onSurfaceVariantDark : AppColors.onSurfaceVariant),
                       fontSize: 11,
                     ),
                   ),

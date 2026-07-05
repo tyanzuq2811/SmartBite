@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_theme.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../domain/entities/user.dart';
 import '../auth/auth_bloc.dart';
 import '../shared/widgets.dart';
@@ -70,7 +71,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       initialDate: _dob ?? maxDate,
       firstDate: DateTime(1920),
       lastDate: maxDate,
-      helpText: 'Chọn ngày sinh (Tối thiểu 5 tuổi)',
+      helpText: Localizations.localeOf(context).languageCode == 'vi' ? 'Chọn ngày sinh (Tối thiểu 5 tuổi)' : 'Select Date of Birth (At least 5 years old)',
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -105,8 +106,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final specialChars = RegExp(r'[!@#\$%^&*(),.?":{}|<>]');
     if (specialChars.hasMatch(text)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tên khẩu vị không được chứa ký tự đặc biệt!'),
+        SnackBar(
+          content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Tên khẩu vị không được chứa ký tự đặc biệt!' : 'Taste name cannot contain special characters!'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -115,8 +116,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     if (text.length > 30) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tên khẩu vị không được vượt quá 30 ký tự!'),
+        SnackBar(
+          content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Tên khẩu vị không được vượt quá 30 ký tự!' : 'Taste name cannot exceed 30 characters!'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -157,9 +158,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thiết lập Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Thiết lập Profile' : 'Profile Setup', style: const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
-        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: Localizations.localeOf(context).languageCode == 'vi' ? 'Hủy đăng ký' : 'Cancel Registration',
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                    const SizedBox(width: 8),
+                    Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Hủy đăng ký?' : 'Cancel Registration?'),
+                  ],
+                ),
+                content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Bạn có chắc chắn muốn hủy đăng ký và quay lại màn hình đăng nhập không? Mọi thông tin bạn đã thiết lập sẽ bị mất.' : 'Are you sure you want to cancel registration and return to the login screen? All setup information will be lost.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: Text(context.translate('cancel'), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(dialogContext); // Close dialog
+                      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false); // Go back to login
+                    },
+                    child: Text(context.translate('confirm'), style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -226,7 +259,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: Text(
-                            'QUAY LẠI',
+                            Localizations.localeOf(context).languageCode == 'vi' ? 'QUAY LẠI' : 'BACK',
                             style: TextStyle(
                               color: isDark ? AppColors.primaryDark : AppColors.primary,
                               fontWeight: FontWeight.bold,
@@ -237,7 +270,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     if (_currentStep > 0) const SizedBox(width: 16),
                     Expanded(
                       child: GradientButton(
-                        text: _currentStep == 2 ? 'HOÀN TẤT' : 'TIẾP TỤC',
+                        text: _currentStep == 2 
+                            ? (Localizations.localeOf(context).languageCode == 'vi' ? 'HOÀN TẤT' : 'FINISH') 
+                            : (Localizations.localeOf(context).languageCode == 'vi' ? 'TIẾP TỤC' : 'CONTINUE'),
                         onPressed: _isStepValid()
                             ? () {
                                 if (_currentStep < 2) {
@@ -286,10 +321,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
-          Text('Bạn là ai?', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24)),
+          Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Bạn là ai?' : 'Who are you?', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24)),
           const SizedBox(height: 8),
           Text(
-            'Nhập các thông tin cơ bản để chúng tôi có thể cá nhân hóa chế độ dinh dưỡng cho bạn.',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Nhập các thông tin cơ bản để chúng tôi có thể cá nhân hóa chế độ dinh dưỡng cho bạn.' : 'Enter basic details so we can customize your nutrition program.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isDark ? AppColors.onSurfaceVariantDark : AppColors.onSurfaceVariant,
             ),
@@ -297,14 +332,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 32),
           CustomTextField(
             controller: _nameController,
-            labelText: 'Tên hiển thị',
-            hintText: 'Nhập tên của bạn',
+            labelText: Localizations.localeOf(context).languageCode == 'vi' ? 'Tên hiển thị' : 'Display name',
+            hintText: Localizations.localeOf(context).languageCode == 'vi' ? 'Nhập tên của bạn' : 'Enter your name',
             prefixIcon: Icons.person_outline_rounded,
           ),
           const SizedBox(height: 24),
           // DOB Field
           Text(
-            'Ngày sinh',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Ngày sinh' : 'Date of Birth',
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -325,7 +360,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    _dob == null ? 'Chọn ngày sinh' : DateFormat('dd/MM/yyyy').format(_dob!),
+                    _dob == null 
+                        ? (Localizations.localeOf(context).languageCode == 'vi' ? 'Chọn ngày sinh' : 'Select Date of Birth') 
+                        : DateFormat('dd/MM/yyyy').format(_dob!),
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: _dob == null
                           ? (isDark ? AppColors.onSurfaceVariantDark : AppColors.onSurfaceVariant)
@@ -339,7 +376,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 24),
           // Gender Field
           Text(
-            'Giới tính',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Giới tính' : 'Gender',
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -354,9 +391,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
             ),
             items: ['Nam', 'Nữ', 'Khác'].map((String val) {
+              String displayText = val;
+              if (Localizations.localeOf(context).languageCode != 'vi') {
+                if (val == 'Nam') displayText = 'Male';
+                if (val == 'Nữ') displayText = 'Female';
+                if (val == 'Khác') displayText = 'Other';
+              }
               return DropdownMenuItem<String>(
                 value: val,
-                child: Text(val, style: theme.textTheme.bodyLarge),
+                child: Text(displayText, style: theme.textTheme.bodyLarge),
               );
             }).toList(),
             onChanged: (val) {
@@ -390,22 +433,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
-          Text('Chế độ dinh dưỡng', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24)),
+          Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Chế độ dinh dưỡng' : 'Nutrition Diet', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24)),
           const SizedBox(height: 8),
           Text(
-            'Lựa chọn chế độ ăn của bạn và khai báo dị ứng để AI lọc công thức nấu ăn.',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Lựa chọn chế độ ăn của bạn và khai báo dị ứng để AI lọc công thức nấu ăn.' : 'Select your diet and report allergies for AI to filter recipes.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isDark ? AppColors.onSurfaceVariantDark : AppColors.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            'Chế độ ăn (Chọn 1)',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Chế độ ăn (Chọn 1)' : 'Diet Mode (Select 1)',
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Column(
             children: ['Bình thường', 'Chay', 'Keto', 'Eat Clean'].map((diet) {
+              String displayText = diet;
+              if (Localizations.localeOf(context).languageCode != 'vi') {
+                if (diet == 'Bình thường') displayText = 'Normal';
+                if (diet == 'Chay') displayText = 'Vegetarian';
+                if (diet == 'Keto') displayText = 'Keto';
+                if (diet == 'Eat Clean') displayText = 'Eat Clean';
+              }
               return Card(
                 elevation: 0,
                 color: _dietType == diet 
@@ -421,30 +471,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
                 margin: const EdgeInsets.only(bottom: 10),
-                child: ListTile(
-                  title: Text(diet, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  trailing: Icon(
-                    _dietType == diet ? Icons.radio_button_checked : Icons.radio_button_off,
-                    color: _dietType == diet 
-                        ? (isDark ? AppColors.primaryDark : AppColors.primary) 
-                        : Colors.grey,
+                child: Material(
+                  color: Colors.transparent,
+                  clipBehavior: Clip.antiAlias,
+                  borderRadius: BorderRadius.circular(12),
+                  child: ListTile(
+                    title: Text(displayText, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    trailing: Icon(
+                      _dietType == diet ? Icons.radio_button_checked : Icons.radio_button_off,
+                      color: _dietType == diet 
+                          ? (isDark ? AppColors.primaryDark : AppColors.primary) 
+                          : Colors.grey,
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _dietType = diet;
+                        // If user switches to Vegetarian, auto-remove 'Thịt bò' from allergies to prevent logic conflict
+                        if (diet == 'Chay') {
+                          _allergies.remove('Thịt bò');
+                        }
+                      });
+                    },
                   ),
-                  onTap: () {
-                    setState(() {
-                      _dietType = diet;
-                      // If user switches to Vegetarian, auto-remove 'Thịt bò' from allergies to prevent logic conflict
-                      if (diet == 'Chay') {
-                        _allergies.remove('Thịt bò');
-                      }
-                    });
-                  },
                 ),
               );
             }).toList(),
           ),
           const SizedBox(height: 16),
           Text(
-            'Bạn có bị dị ứng không? (Chọn nhiều)',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Bạn có bị dị ứng không? (Chọn nhiều)' : 'Do you have any allergies? (Select multiple)',
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -453,9 +508,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               // Contradiction logic: disable "Thịt bò" if "Chay" (Vegetarian) is selected
               final isDisabled = isVegetarian && allergy == 'Thịt bò';
               
+              String displayText = allergy;
+              if (Localizations.localeOf(context).languageCode != 'vi') {
+                if (allergy == 'Đậu phộng') displayText = 'Peanuts';
+                if (allergy == 'Hải sản') displayText = 'Seafood';
+                if (allergy == 'Thịt bò') displayText = 'Beef';
+                if (allergy == 'Sữa') displayText = 'Milk / Dairy';
+              }
+
               return CheckboxListTile(
                 title: Text(
-                  allergy,
+                  displayText,
                   style: TextStyle(
                     color: isDisabled 
                         ? Colors.grey 
@@ -495,10 +558,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
-          Text('Khẩu vị cá nhân', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24)),
+          Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Khẩu vị cá nhân' : 'Personal Taste', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24)),
           const SizedBox(height: 8),
           Text(
-            'Nhập các hương vị hoặc nguyên liệu yêu thích và ghét của bạn để đầu bếp AI gợi ý tối ưu nhất.',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Nhập các hương vị hoặc nguyên liệu yêu thích và ghét của bạn để đầu bếp AI gợi ý tối ưu nhất.' : 'Enter your favorite and disliked flavors or ingredients so AI Chef can suggest the best menu.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isDark ? AppColors.onSurfaceVariantDark : AppColors.onSurfaceVariant,
             ),
@@ -506,7 +569,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 24),
           // Yêu thích
           Text(
-            'Sở thích / Hương vị Yêu thích',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Sở thích / Hương vị Yêu thích' : 'Favorite Flavors / Ingredients',
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -515,9 +578,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Expanded(
                 child: TextField(
                   controller: _likeInputController,
-                  decoration: const InputDecoration(
-                    hintText: 'VD: Cay, Hải sản, Bột béo...',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    hintText: Localizations.localeOf(context).languageCode == 'vi' ? 'VD: Cay, Hải sản, Bột béo...' : 'E.g., Spicy, Seafood, Fat...',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   onSubmitted: (_) => _addTag(_likeInputController, _likes),
                 ),
@@ -553,7 +618,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 24),
           // Không thích
           Text(
-            'Nguyên liệu / Hương vị Không thích',
+            Localizations.localeOf(context).languageCode == 'vi' ? 'Nguyên liệu / Hương vị Không thích' : 'Disliked Flavors / Ingredients',
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -562,9 +627,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Expanded(
                 child: TextField(
                   controller: _dislikeInputController,
-                  decoration: const InputDecoration(
-                    hintText: 'VD: Hành lá, Cà rốt, Ngọt...',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    hintText: Localizations.localeOf(context).languageCode == 'vi' ? 'VD: Hành lá, Cà rốt, Ngọt...' : 'E.g., Onions, Carrots, Sweet...',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   onSubmitted: (_) => _addTag(_dislikeInputController, _dislikes),
                 ),

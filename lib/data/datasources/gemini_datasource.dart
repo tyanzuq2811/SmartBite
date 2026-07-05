@@ -7,6 +7,8 @@ import '../models/recipe_model.dart';
 import 'package:injectable/injectable.dart';
 
 abstract class GeminiDataSource {
+  bool get hasApiKey;
+
   Future<RecipeModel> generateRecipeFromIngredients({
     required List<String> ingredients,
     required String diet,
@@ -22,6 +24,14 @@ abstract class GeminiDataSource {
     required List<String> dislikes,
     required List<String> likes,
   });
+
+  Future<Map<String, dynamic>> generateMealPlan({
+    required String diet,
+    required List<String> allergies,
+    required List<String> dislikes,
+    required List<String> likes,
+    required int targetCalories,
+  });
 }
 
 @LazySingleton(as: GeminiDataSource)
@@ -29,7 +39,13 @@ class GeminiDataSourceImpl implements GeminiDataSource {
   final String _apiKey;
 
   GeminiDataSourceImpl()
-      : _apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+      : _apiKey = const String.fromEnvironment(
+          'GEMINI_API_KEY',
+          defaultValue: '',
+        );
+
+  @override
+  bool get hasApiKey => _apiKey.isNotEmpty && (_apiKey.startsWith('AIzaSy') || _apiKey.startsWith('AQ.'));
 
   @override
   Future<RecipeModel> generateRecipeFromIngredients({
@@ -47,7 +63,7 @@ class GeminiDataSourceImpl implements GeminiDataSource {
         generationConfig: GenerationConfig(responseMimeType: 'application/json'),
       );
       final response = await model.generateContent([Content.text(prompt)]).timeout(
-        const Duration(seconds: 15),
+        const Duration(minutes: 2),
         onTimeout: () => throw TimeoutException('Kết nối đến Gemini AI bị quá hạn.'),
       );
       return response.text ?? '';
@@ -76,7 +92,7 @@ class GeminiDataSourceImpl implements GeminiDataSource {
           DataPart('image/jpeg', imageBytes),
         ])
       ]).timeout(
-        const Duration(seconds: 15),
+        const Duration(minutes: 2),
         onTimeout: () => throw TimeoutException('Kết nối đến Gemini AI bị quá hạn.'),
       );
       return response.text ?? '';
@@ -209,5 +225,217 @@ Yêu cầu định dạng: BẠN PHẢI TRẢ VỀ DỮ LIỆU DẠNG JSON duy n
         'Bày ra đĩa và thưởng thức lạnh để giữ độ giòn của rau.'
       ],
     );
+  }
+
+  @override
+  Future<Map<String, dynamic>> generateMealPlan({
+    required String diet,
+    required List<String> allergies,
+    required List<String> dislikes,
+    required List<String> likes,
+    required int targetCalories,
+  }) async {
+    if (_apiKey.isEmpty) {
+      await Future.delayed(const Duration(seconds: 2));
+      return _generateMockMealPlan(diet);
+    }
+
+    final prompt = _buildMealPlanPrompt(diet, allergies, dislikes, likes, targetCalories);
+    try {
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: _apiKey,
+        generationConfig: GenerationConfig(responseMimeType: 'application/json'),
+      );
+      final response = await model.generateContent([Content.text(prompt)]).timeout(
+        const Duration(minutes: 2),
+        onTimeout: () => throw TimeoutException('Kết nối đến Gemini AI bị quá hạn khi tạo thực đơn.'),
+      );
+      final rawResult = response.text ?? '';
+      return jsonDecode(rawResult) as Map<String, dynamic>;
+    } catch (e) {
+      print('Gemini error generating meal plan: $e');
+      if (e is TimeoutException) {
+        throw GeminiTimeoutException(e.message ?? 'Đầu bếp AI đang quá tải khi tạo thực đơn, vui lòng thử lại sau!');
+      }
+      throw ServerException('Lỗi tạo thực đơn từ Gemini AI: $e');
+    }
+  }
+
+  String _buildMealPlanPrompt(
+    String diet,
+    List<String> allergies,
+    List<String> dislikes,
+    List<String> likes,
+    int targetCalories,
+  ) {
+    return '''
+Bạn là chuyên gia dinh dưỡng cao cấp. Hãy lập một thực đơn ăn sạch, khoa học cho hôm nay gồm 3 bữa chính: Bữa sáng, Bữa trưa, Bữa tối.
+Thông tin khách hàng:
+- Chế độ ăn: $diet
+- Dị ứng thực phẩm: ${allergies.join(', ')}
+- Thực phẩm ghét (không dùng): ${dislikes.join(', ')}
+- Thực phẩm thích (ưu tiên dùng): ${likes.join(', ')}
+- Tổng mục tiêu calo trong ngày: khoảng $targetCalories calo.
+
+Yêu cầu cụ thể:
+1. Bữa sáng khoảng 25-30% calo, Bữa trưa khoảng 35-40% calo, Bữa tối khoảng 30-35% calo.
+2. Với mỗi bữa ăn, cung cấp 2 phương án thay thế (swaps) khác nhau phù hợp VÀ danh sách các bước nấu ăn chi tiết (instructions) gồm các bước cụ thể, ngắn gọn bằng tiếng Việt (hoặc tiếng Anh nếu diet/ngôn ngữ phù hợp).
+3. Tạo danh sách nguyên liệu đi chợ (grocery_list) tổng hợp phân loại theo các nhóm (ví dụ: "Đạm & Thịt", "Rau củ", "Khác") với số lượng (qty) cụ thể.
+4. Cung cấp URL ảnh minh hoạ chất lượng cao và hoạt động tốt từ Unsplash (unsplash.com) phù hợp với món ăn (tránh link chung chung, hãy dùng url ảnh cụ thể như: https://images.unsplash.com/photo-1525351484163-7529414344d8?w=200).
+
+BẠN BẮT BUỘC TRẢ VỀ DỮ LIỆU DẠNG JSON DUY NHẤT, KHÔNG THÊM BẤT KỲ VĂN BẢN GIẢI THÍCH NÀO KHÁC NGOÀI KHỐI JSON. Cấu trúc JSON bắt buộc phải như sau:
+{
+  "meals": [
+    {
+      "type": "Bữa sáng",
+      "name": "Tên món ăn sáng cụ thể",
+      "calories": 350,
+      "image_url": "URL ảnh cụ thể từ Unsplash",
+      "swaps": ["Món thay thế 1", "Món thay thế 2"],
+      "instructions": ["Bước 1: Chuẩn bị yến mạch...", "Bước 2: Cho sữa vào nấu chín..."]
+    },
+    {
+      "type": "Bữa trưa",
+      "name": "Tên món ăn trưa cụ thể",
+      "calories": 450,
+      "image_url": "URL ảnh cụ thể từ Unsplash",
+      "swaps": ["Món thay thế 1", "Món thay thế 2"],
+      "instructions": ["Bước 1: Sơ chế thịt bò...", "Bước 2: Xào nhanh tay..."]
+    },
+    {
+      "type": "Bữa tối",
+      "name": "Tên món ăn tối cụ thể",
+      "calories": 500,
+      "image_url": "URL ảnh cụ thể từ Unsplash",
+      "swaps": ["Món thay thế 1", "Món thay thế 2"],
+      "instructions": ["Bước 1: Ướp cá hồi...", "Bước 2: Áp chảo cá hồi..."]
+    }
+  ],
+  "grocery_list": {
+    "Đạm & Thịt": [
+      {"name": "Tên nguyên liệu", "qty": "200g", "checked": false}
+    ],
+    "Rau củ": [
+      {"name": "Tên nguyên liệu", "qty": "2 quả", "checked": false}
+    ]
+  }
+}
+''';
+  }
+
+  Map<String, dynamic> _generateMockMealPlan(String diet) {
+    if (diet == 'Chay') {
+      return {
+        "meals": [
+          {
+            "type": "Bữa sáng",
+            "name": "Cháo yến mạch và hạt chia dinh dưỡng",
+            "calories": 310,
+            "image_url": "https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?w=200",
+            "swaps": ["Sữa chua Hy Lạp mix dâu tây", "Bánh mì nướng bơ quả bơ"],
+            "instructions": [
+              "Ngâm hạt chia trong nước ấm khoảng 5 phút.",
+              "Đun sôi yến mạch với nước hoặc sữa đậu nành trong 10 phút.",
+              "Đổ cháo yến mạch ra bát, rắc hạt chia, chuối thái lát lên trên rồi dùng ấm."
+            ]
+          },
+          {
+            "type": "Bữa trưa",
+            "name": "Đậu hũ sốt cà chua hành tây nấu nấm",
+            "calories": 380,
+            "image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200",
+            "swaps": ["Salad rau củ sốt mè rang", "Canh chua chay Nam Bộ"],
+            "instructions": [
+              "Cắt đậu hũ thành khối vuông nhỏ, áp chảo vàng đều các mặt.",
+              "Phi thơm hành tây băm nhỏ, xào chung với nấm rơm và cà chua thái múi.",
+              "Cho đậu hũ vào nước sốt cà chua, nêm gia vị chay, đun nhỏ lửa 5 phút rồi rắc hành lá."
+            ]
+          },
+          {
+            "type": "Bữa tối",
+            "name": "Cơm gạo lứt muối mè trộn rau luộc",
+            "calories": 450,
+            "image_url": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200",
+            "swaps": ["Súp bí đỏ kem tươi chay", "Mì Ý sốt pesto rau cải"],
+            "instructions": [
+              "Vo gạo lứt rồi nấu chín mềm trong nồi cơm điện.",
+              "Luộc chín bông cải xanh, cà rốt và rau cải ngọt với chút muối.",
+              "Trộn cơm gạo lứt ấm với muối mè, ăn kèm rau củ luộc thanh mát."
+            ]
+          }
+        ],
+        "grocery_list": {
+          "Rau củ & Quả": [
+            {"name": "Cà chua chín", "qty": "2 quả", "checked": false},
+            {"name": "Hành tây", "qty": "1 củ", "checked": false},
+            {"name": "Nấm tươi", "qty": "150g", "checked": false},
+            {"name": "Rau cải ngọt", "qty": "200g", "checked": false}
+          ],
+          "Ngũ cốc & Đạm thực vật": [
+            {"name": "Đậu hũ non", "qty": "2 bìa", "checked": false},
+            {"name": "Yến mạch nguyên cám", "qty": "50g", "checked": false},
+            {"name": "Gạo lứt đỏ", "qty": "100g", "checked": false}
+          ]
+        }
+      };
+    } else {
+      return {
+        "meals": [
+          {
+            "type": "Bữa sáng",
+            "name": "Bánh mì sandwich trứng ốp la",
+            "calories": 350,
+            "image_url": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=200",
+            "swaps": ["Sinh tố bơ yến mạch hạt lanh", "Sữa chua hạt ngũ cốc"],
+            "instructions": [
+              "Đun nóng chảo với một ít bơ, đập trứng gà vào ốp la chín tới.",
+              "Nướng nhẹ bánh mì sandwich cho giòn thơm.",
+              "Đặt trứng ốp la lên bánh mì, rắc tiêu, muối và ăn kèm vài lát cà chua."
+            ]
+          },
+          {
+            "type": "Bữa trưa",
+            "name": "Bò né xào cà chua hành tây dầu hào",
+            "calories": 420,
+            "image_url": "https://images.unsplash.com/photo-1544025162-d76694265947?w=200",
+            "swaps": ["Ức gà áp chảo sốt mật ong", "Thịt heo rim nước dừa tươi"],
+            "instructions": [
+              "Thịt bò phi lê thái mỏng, ướp dầu hào, tỏi băm và một chút tiêu.",
+              "Đun nóng chảo, xào nhanh thịt bò ở lửa lớn để giữ độ mềm.",
+              "Thêm hành tây cắt múi, cà chua xào chín tái rồi bày ra đĩa ăn kèm cơm."
+            ]
+          },
+          {
+            "type": "Bữa tối",
+            "name": "Cá hồi áp chảo sốt bơ tỏi chanh dây",
+            "calories": 540,
+            "image_url": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=200",
+            "swaps": ["Tôm nướng muối ớt chanh", "Sườn heo nướng thảo mộc"],
+            "instructions": [
+              "Cá hồi rửa sạch, thấm khô, ướp với chút muối và tiêu đen.",
+              "Áp chảo cá hồi với dầu ô liu mỗi mặt khoảng 2-3 phút.",
+              "Phi tỏi thơm trong chảo, đổ nước cốt chanh dây và chút đường đun sệt, rồi rưới lên cá hồi."
+            ]
+          }
+        ],
+        "grocery_list": {
+          "Đạm & Thịt": [
+            {"name": "Thịt bò phi lê", "qty": "200g", "checked": false},
+            {"name": "Filet cá hồi tươi", "qty": "250g", "checked": false},
+            {"name": "Trứng gà ta", "qty": "2 quả", "checked": false}
+          ],
+          "Rau củ quả": [
+            {"name": "Cà chua chín", "qty": "2 quả", "checked": false},
+            {"name": "Hành tây", "qty": "1 củ", "checked": false},
+            {"name": "Tỏi tép", "qty": "1 củ", "checked": false}
+          ],
+          "Khác": [
+            {"name": "Bánh mì sandwich", "qty": "2 lát", "checked": false},
+            {"name": "Bơ thực vật", "qty": "30g", "checked": false}
+          ]
+        }
+      };
+    }
   }
 }

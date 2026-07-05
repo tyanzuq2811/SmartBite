@@ -1,60 +1,124 @@
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:equatable/equatable.dart';
+import '../../data/models/meal_plan_model.dart';
 
 class CalorieTrackerState extends Equatable {
-  final int consumedCalories;
+  final Map<String, int> consumedCaloriesByDate;
   final int targetCalories;
-  final Map<String, bool> eatenRecipes;
+  final Map<String, Map<String, bool>> eatenRecipesByDate;
+  final Map<String, List<MealItemModel>> eatenMealsByDate;
 
   const CalorieTrackerState({
-    required this.consumedCalories,
+    required this.consumedCaloriesByDate,
     required this.targetCalories,
-    required this.eatenRecipes,
+    required this.eatenRecipesByDate,
+    required this.eatenMealsByDate,
   });
 
   factory CalorieTrackerState.initial() {
     return const CalorieTrackerState(
-      consumedCalories: 650, // Default baseline consumed calories
+      consumedCaloriesByDate: {},
       targetCalories: 2000,
-      eatenRecipes: {},
+      eatenRecipesByDate: {},
+      eatenMealsByDate: {},
     );
   }
 
+  int getConsumedCaloriesForDate(String date) {
+    return consumedCaloriesByDate[date] ?? 0;
+  }
+
+  Map<String, bool> getEatenRecipesForDate(String date) {
+    return eatenRecipesByDate[date] ?? {};
+  }
+
+  List<MealItemModel> getEatenMealsForDate(String date) {
+    return eatenMealsByDate[date] ?? [];
+  }
+
+  int get consumedCalories {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return getConsumedCaloriesForDate(todayStr);
+  }
+
+  Map<String, bool> get eatenRecipes {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return getEatenRecipesForDate(todayStr);
+  }
+
+  List<MealItemModel> get eatenMeals {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return getEatenMealsForDate(todayStr);
+  }
+
   CalorieTrackerState copyWith({
-    int? consumedCalories,
+    Map<String, int>? consumedCaloriesByDate,
     int? targetCalories,
-    Map<String, bool>? eatenRecipes,
+    Map<String, Map<String, bool>>? eatenRecipesByDate,
+    Map<String, List<MealItemModel>>? eatenMealsByDate,
   }) {
     return CalorieTrackerState(
-      consumedCalories: consumedCalories ?? this.consumedCalories,
+      consumedCaloriesByDate: consumedCaloriesByDate ?? this.consumedCaloriesByDate,
       targetCalories: targetCalories ?? this.targetCalories,
-      eatenRecipes: eatenRecipes ?? this.eatenRecipes,
+      eatenRecipesByDate: eatenRecipesByDate ?? this.eatenRecipesByDate,
+      eatenMealsByDate: eatenMealsByDate ?? this.eatenMealsByDate,
     );
   }
 
   @override
-  List<Object?> get props => [consumedCalories, targetCalories, eatenRecipes];
+  List<Object?> get props => [consumedCaloriesByDate, targetCalories, eatenRecipesByDate, eatenMealsByDate];
 }
 
 @injectable
 class CalorieTrackerCubit extends HydratedCubit<CalorieTrackerState> {
   CalorieTrackerCubit() : super(CalorieTrackerState.initial());
 
-  void toggleEaten(String recipeName, int calories) {
-    final currentlyEaten = state.eatenRecipes[recipeName] ?? false;
+  void toggleEaten(MealItemModel meal, [String? date]) {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final actualDate = date ?? todayStr;
+
+    final recipeName = meal.name;
+    final calories = meal.calories;
+
+    final eatenForDate = Map<String, bool>.from(state.eatenRecipesByDate[actualDate] ?? {});
+    final currentlyEaten = eatenForDate[recipeName] ?? false;
     final nextEaten = !currentlyEaten;
 
-    final updatedMap = Map<String, bool>.from(state.eatenRecipes);
-    updatedMap[recipeName] = nextEaten;
+    eatenForDate[recipeName] = nextEaten;
 
+    final currentConsumed = state.consumedCaloriesByDate[actualDate] ?? 0;
     final nextConsumed = nextEaten
-        ? state.consumedCalories + calories
-        : state.consumedCalories - calories;
+        ? currentConsumed + calories
+        : (currentConsumed - calories).clamp(0, 99999);
+
+    final updatedConsumedMap = Map<String, int>.from(state.consumedCaloriesByDate);
+    updatedConsumedMap[actualDate] = nextConsumed;
+
+    final updatedEatenMap = Map<String, Map<String, bool>>.from(state.eatenRecipesByDate);
+    updatedEatenMap[actualDate] = eatenForDate;
+
+    // Cập nhật danh sách MealItemModel đầy đủ đã ăn
+    final eatenMealsForDate = List<MealItemModel>.from(state.eatenMealsByDate[actualDate] ?? []);
+    if (nextEaten) {
+      if (!eatenMealsForDate.any((m) => m.name == recipeName)) {
+        eatenMealsForDate.add(meal);
+      }
+    } else {
+      eatenMealsForDate.removeWhere((m) => m.name == recipeName);
+    }
+
+    final updatedMealsMap = Map<String, List<MealItemModel>>.from(state.eatenMealsByDate);
+    updatedMealsMap[actualDate] = eatenMealsForDate;
 
     emit(state.copyWith(
-      consumedCalories: nextConsumed,
-      eatenRecipes: updatedMap,
+      consumedCaloriesByDate: updatedConsumedMap,
+      eatenRecipesByDate: updatedEatenMap,
+      eatenMealsByDate: updatedMealsMap,
     ));
   }
 
@@ -68,19 +132,72 @@ class CalorieTrackerCubit extends HydratedCubit<CalorieTrackerState> {
 
   @override
   CalorieTrackerState? fromJson(Map<String, dynamic> json) {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    final Map<String, int> consumedMap = {};
+    if (json['consumedCaloriesByDate'] != null) {
+      final rawMap = json['consumedCaloriesByDate'] as Map;
+      rawMap.forEach((key, val) {
+        consumedMap[key.toString()] = val as int? ?? 0;
+      });
+    } else if (json['consumedCalories'] != null) {
+      consumedMap[todayStr] = json['consumedCalories'] as int? ?? 0;
+    }
+
+    final Map<String, Map<String, bool>> eatenMap = {};
+    if (json['eatenRecipesByDate'] != null) {
+      final rawMap = json['eatenRecipesByDate'] as Map;
+      rawMap.forEach((key, val) {
+        final innerMap = <String, bool>{};
+        if (val is Map) {
+          val.forEach((ik, iv) {
+            innerMap[ik.toString()] = iv as bool? ?? false;
+          });
+        }
+        eatenMap[key.toString()] = innerMap;
+      });
+    } else if (json['eatenRecipes'] != null) {
+      final innerMap = <String, bool>{};
+      final rawInner = json['eatenRecipes'] as Map;
+      rawInner.forEach((k, v) {
+        innerMap[k.toString()] = v as bool? ?? false;
+      });
+      eatenMap[todayStr] = innerMap;
+    }
+
+    final Map<String, List<MealItemModel>> eatenMealsMap = {};
+    if (json['eatenMealsByDate'] != null) {
+      final rawMap = json['eatenMealsByDate'] as Map;
+      rawMap.forEach((key, val) {
+        if (val is List) {
+          eatenMealsMap[key.toString()] = val
+              .map((e) => MealItemModel.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+      });
+    }
+
     return CalorieTrackerState(
-      consumedCalories: json['consumedCalories'] as int? ?? 650,
+      consumedCaloriesByDate: consumedMap,
       targetCalories: json['targetCalories'] as int? ?? 2000,
-      eatenRecipes: Map<String, bool>.from(json['eatenRecipes'] as Map? ?? {}),
+      eatenRecipesByDate: eatenMap,
+      eatenMealsByDate: eatenMealsMap,
     );
   }
 
   @override
   Map<String, dynamic>? toJson(CalorieTrackerState state) {
+    final Map<String, List<Map<String, dynamic>>> serializedMeals = {};
+    state.eatenMealsByDate.forEach((key, val) {
+      serializedMeals[key] = val.map((m) => m.toJson()).toList();
+    });
+
     return {
-      'consumedCalories': state.consumedCalories,
+      'consumedCaloriesByDate': state.consumedCaloriesByDate,
       'targetCalories': state.targetCalories,
-      'eatenRecipes': state.eatenRecipes,
+      'eatenRecipesByDate': state.eatenRecipesByDate,
+      'eatenMealsByDate': serializedMeals,
     };
   }
 }

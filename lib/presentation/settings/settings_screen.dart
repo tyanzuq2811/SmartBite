@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/constants/app_theme.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../domain/entities/user.dart';
 import '../auth/auth_bloc.dart';
 import 'app_setting_cubit.dart';
+import 'edit_profile_screen.dart';
+import 'notification_settings_screen.dart';
+import 'privacy_security_screen.dart';
+import 'help_center_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -33,7 +39,7 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cài đặt', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(context.translate('settingsTitle'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(
         child: ListView(
@@ -121,7 +127,9 @@ class SettingsScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            role == 'admin' ? 'Quản Trị Viên' : 'Thành Viên',
+                            role == 'admin'
+                                ? (settingsState.locale == 'vi' ? 'Quản Trị Viên' : 'Administrator')
+                                : (settingsState.locale == 'vi' ? 'Thành Viên' : 'Member'),
                             style: TextStyle(
                               color: role == 'admin' ? Colors.purple : Colors.blue,
                               fontWeight: FontWeight.bold,
@@ -135,9 +143,27 @@ class SettingsScreen extends StatelessWidget {
                   IconButton(
                     icon: Icon(Icons.edit_outlined, color: Colors.grey[600]),
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Tính năng chỉnh sửa hồ sơ đang được phát triển')),
-                      );
+                      UserProfileEntity? currentProfile;
+                      if (authState is AuthenticatedUser) {
+                        currentProfile = authState.user.profile;
+                      } else if (authState is AuthenticatedAdmin) {
+                        currentProfile = authState.user.profile;
+                      }
+
+                      if (currentProfile != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditProfileScreen(
+                              currentProfile: currentProfile!,
+                            ),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(settingsState.locale == 'vi' ? 'Không thể tải thông tin hồ sơ hiện tại' : 'Unable to load current profile information')),
+                        );
+                      }
                     },
                   ),
                 ],
@@ -146,11 +172,11 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 28),
 
             // --- Section: App Settings ---
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
               child: Text(
-                'CÀI ĐẶT ỨNG DỤNG',
-                style: TextStyle(
+                settingsState.locale == 'vi' ? 'CÀI ĐẶT ỨNG DỤNG' : 'APP SETTINGS',
+                style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
@@ -159,95 +185,110 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
+            Material(
+              color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
+                side: BorderSide(
                   color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
                 ),
               ),
               child: Column(
                 children: [
-                  // Dark Mode Switch
-                  ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.surface,
-                      child: Icon(
-                        settingsState.themeMode == 'dark'
-                            ? Icons.dark_mode_rounded
-                            : Icons.light_mode_rounded,
-                        color: Colors.grey[600],
+                    // Dark Mode Switch
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: theme.colorScheme.surface,
+                        child: Icon(
+                          settingsState.themeMode == 'dark'
+                              ? Icons.dark_mode_rounded
+                              : Icons.light_mode_rounded,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      title: Text(context.translate('darkMode'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: Switch(
+                        value: settingsState.themeMode == 'dark',
+                        activeThumbColor: theme.colorScheme.primary,
+                        onChanged: (val) {
+                          settingsCubit.toggleTheme();
+                        },
                       ),
                     ),
-                    title: const Text('Giao diện tối (Dark Mode)', style: TextStyle(fontWeight: FontWeight.bold)),
-                    trailing: Switch(
-                      value: settingsState.themeMode == 'dark',
-                      activeThumbColor: theme.colorScheme.primary,
-                      onChanged: (val) {
-                        settingsCubit.toggleTheme();
+                    const Divider(height: 1),
+
+                    // Language dropdown
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: theme.colorScheme.surface,
+                        child: Icon(Icons.language, color: Colors.grey[600]),
+                      ),
+                      title: Text(context.translate('displayLanguage'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: DropdownButton<String>(
+                        value: settingsState.locale,
+                        dropdownColor: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
+                        underline: const SizedBox(),
+                        items: const [
+                          DropdownMenuItem(value: 'vi', child: Text('Tiếng Việt 🇻🇳')),
+                          DropdownMenuItem(value: 'en', child: Text('English 🇬🇧')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            settingsCubit.changeLocale(val);
+                          }
+                        },
+                      ),
+                    ),
+                    const Divider(height: 1),
+
+                    // Notifications
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: theme.colorScheme.surface,
+                        child: Icon(Icons.notifications_outlined, color: Colors.grey[600]),
+                      ),
+                      title: Text(context.translate('notifications'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NotificationSettingsScreen(),
+                          ),
+                        );
                       },
                     ),
-                  ),
-                  const Divider(height: 1),
+                    const Divider(height: 1),
 
-                  // Language dropdown
-                  ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.surface,
-                      child: Icon(Icons.language, color: Colors.grey[600]),
-                    ),
-                    title: const Text('Ngôn ngữ hiển thị', style: TextStyle(fontWeight: FontWeight.bold)),
-                    trailing: DropdownButton<String>(
-                      value: settingsState.locale,
-                      dropdownColor: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
-                      underline: const SizedBox(),
-                      items: const [
-                        DropdownMenuItem(value: 'vi', child: Text('Tiếng Việt 🇻🇳')),
-                        DropdownMenuItem(value: 'en', child: Text('English 🇬🇧')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          settingsCubit.changeLocale(val);
-                        }
+                    // Privacy
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: theme.colorScheme.surface,
+                        child: Icon(Icons.security_outlined, color: Colors.grey[600]),
+                      ),
+                      title: Text(context.translate('privacy'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PrivacySecurityScreen(),
+                          ),
+                        );
                       },
                     ),
-                  ),
-                  const Divider(height: 1),
-
-                  // Notifications
-                  ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.surface,
-                      child: Icon(Icons.notifications_outlined, color: Colors.grey[600]),
-                    ),
-                    title: const Text('Thông báo', style: TextStyle(fontWeight: FontWeight.bold)),
-                    trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-                    onTap: () {},
-                  ),
-                  const Divider(height: 1),
-
-                  // Privacy
-                  ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.surface,
-                      child: Icon(Icons.security_outlined, color: Colors.grey[600]),
-                    ),
-                    title: const Text('Quyền riêng tư & Bảo mật', style: TextStyle(fontWeight: FontWeight.bold)),
-                    trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-                    onTap: () {},
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
             // --- Section: Help ---
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
               child: Text(
-                'HỖ TRỢ',
-                style: TextStyle(
+                settingsState.locale == 'vi' ? 'HỖ TRỢ' : 'SUPPORT',
+                style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
@@ -256,11 +297,12 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
 
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
+            Material(
+              color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
+                side: BorderSide(
                   color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
                 ),
               ),
@@ -269,21 +311,53 @@ class SettingsScreen extends StatelessWidget {
                   backgroundColor: theme.colorScheme.surface,
                   child: Icon(Icons.help_outline, color: Colors.grey[600]),
                 ),
-                title: const Text('Trung tâm trợ giúp', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(context.translate('helpCenter'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 trailing: Icon(Icons.open_in_new, color: Colors.grey[400], size: 20),
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HelpCenterScreen(),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 32),
 
-            // --- Logout Button ---
             OutlinedButton.icon(
               onPressed: () {
-                authBloc.add(LogoutRequested());
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                showDialog(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: Row(
+                      children: [
+                        const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                        const SizedBox(width: 8),
+                        Text(settingsState.locale == 'vi' ? 'Đăng xuất?' : 'Logout?'),
+                      ],
+                    ),
+                    content: Text(context.translate('logoutConfirm')),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: Text(context.translate('cancel'), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext); // Close dialog
+                          authBloc.add(LogoutRequested());
+                          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                        },
+                        child: Text(context.translate('logout'), style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
               },
               icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-              label: const Text('ĐĂNG XUẤT', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(context.translate('logout').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 52),
                 side: const BorderSide(color: Colors.redAccent, width: 2),

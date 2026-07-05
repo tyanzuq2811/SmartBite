@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "563681575611",
+    "project_id": "smartbite-flutter-app",
+    "storage_bucket": "smartbite-flutter-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:563681575611:android:23efc0f6b0ca161e745f9e",
+        "android_client_info": {
+          "package_name": "com.smartbite.smartbite"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADz2OJB61HWLaWnZSRc5oqCCy4ugHKtfI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

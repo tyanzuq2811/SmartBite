@@ -4,11 +4,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 // Import core architecture components
 import 'core/constants/app_theme.dart';
 import 'core/utils/connectivity_service.dart';
 import 'core/di/injection.dart';
+
+import 'core/localization/app_localizations.dart';
 
 // Import Data sources
 import 'data/datasources/local_datasource.dart';
@@ -34,6 +38,11 @@ import 'presentation/admin/admin_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Initialize HydratedStorage
   HydratedBloc.storage = await HydratedStorage.build(
@@ -89,6 +98,7 @@ class SmartBiteApp extends StatelessWidget {
               
               locale: Locale(settingsState.locale),
               localizationsDelegates: const [
+                AppLocalizations.delegate,
                 GlobalMaterialLocalizations.delegate,
                 GlobalWidgetsLocalizations.delegate,
                 GlobalCupertinoLocalizations.delegate,

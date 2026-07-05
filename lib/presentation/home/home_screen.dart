@@ -11,6 +11,7 @@ import '../main_shell.dart';
 import '../stats/stats_challenges_screen.dart';
 import 'calorie_tracker_cubit.dart';
 import 'sync_cubit.dart';
+import '../../data/models/meal_plan_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +23,12 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   List<Recipe> _dbSavedRecipes = [];
   bool _isLoadingSaved = true;
+  DateTime _selectedDate = DateTime.now();
+  DateTime _focusedWeekDay = DateTime.now();
+
+  String _getDateStr(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
 
   static const Recipe smoothieRecipe = Recipe(
     recipeName: 'Smoothie Việt Quất',
@@ -336,6 +343,11 @@ class HomeScreenState extends State<HomeScreen> {
 
           return BlocBuilder<CalorieTrackerCubit, CalorieTrackerState>(
             builder: (context, calorieState) {
+              final dateStr = _getDateStr(_selectedDate);
+              final consumedCalories = calorieState.getConsumedCaloriesForDate(dateStr);
+              final eatenRecipes = calorieState.getEatenRecipesForDate(dateStr);
+              final eatenMeals = calorieState.getEatenMealsForDate(dateStr);
+
               return RefreshIndicator(
                 onRefresh: () async {
                   context.read<CalorieTrackerCubit>().reset();
@@ -361,7 +373,7 @@ class HomeScreenState extends State<HomeScreen> {
                             Text(
                               _getGreeting(),
                               style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
@@ -455,6 +467,10 @@ class HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 20),
 
+                    // --- Weekly Calendar Widget ---
+                    _buildWeeklyCalendar(theme, isDark),
+                    const SizedBox(height: 20),
+
                     // --- Calorie Dashboard Card ---
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -472,9 +488,9 @@ class HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         children: [
                           CaloriesRing(
-                            currentCalories: calorieState.consumedCalories,
+                            currentCalories: consumedCalories,
                             targetCalories: calorieState.targetCalories,
-                            eatenRecipes: calorieState.eatenRecipes,
+                            eatenRecipes: eatenRecipes,
                           ),
                           const SizedBox(width: 20),
                           Expanded(
@@ -489,18 +505,48 @@ class HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${calorieState.consumedCalories} / ${calorieState.targetCalories} kcal',
+                                  '$consumedCalories / ${calorieState.targetCalories} kcal',
                                   style: theme.textTheme.headlineMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 LinearProgressIndicator(
-                                  value: (calorieState.consumedCalories / calorieState.targetCalories).clamp(0.0, 1.0),
+                                  value: (consumedCalories / calorieState.targetCalories).clamp(0.0, 1.0),
                                   minHeight: 8,
                                   borderRadius: BorderRadius.circular(4),
                                   backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
                                   valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primaryContainer),
+                                ),
+                                const SizedBox(height: 8),
+                                InkWell(
+                                  onTap: () => _showEatenMealsBottomSheet(context, eatenMeals),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.restaurant_menu,
+                                          size: 14,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          Localizations.localeOf(context).languageCode == 'vi'
+                                              ? 'Xem các món đã nạp'
+                                              : 'View consumed meals',
+                                          style: TextStyle(
+                                            color: theme.colorScheme.primary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            decoration: TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -683,9 +729,17 @@ class HomeScreenState extends State<HomeScreen> {
                       sub: '210 kcal • Bữa phụ',
                       imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjMkk0JDqdMeLbvCeuHlvbZOE5LQoLbVF0_9JTZMSELaU1VOTucKjr9W6Q4OzevndSwdw2KNrjEWZaQQdi9IOgguLqCFmfjUTcX698fWt9ZFOvwdiCgTChESeUDgLd9WqsN5V6x0-M4kTpb0ksVFazSicTqnf6yXqndssW4JZ5Skjkd99wUuZ8xgN2u-y5k2DE6JyVhNs-WGZRHljuvMwqD4WJUK0s5GVkMcOno4_13zodAdcp7s574Lsg_HlLGTdTZUUGnGw82i_O',
                       calories: 210,
-                      isEaten: calorieState.eatenRecipes['Smoothie Việt Quất'] ?? false,
+                      isEaten: eatenRecipes['Smoothie Việt Quất'] ?? false,
                       onEatenToggle: (val) {
-                        context.read<CalorieTrackerCubit>().toggleEaten('Smoothie Việt Quất', 210);
+                        final mealItem = MealItemModel(
+                          type: 'Bữa phụ',
+                          name: 'Smoothie Việt Quất',
+                          calories: 210,
+                          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjMkk0JDqdMeLbvCeuHlvbZOE5LQoLbVF0_9JTZMSELaU1VOTucKjr9W6Q4OzevndSwdw2KNrjEWZaQQdi9IOgguLqCFmfjUTcX698fWt9ZFOvwdiCgTChESeUDgLd9WqsN5V6x0-M4kTpb0ksVFazSicTqnf6yXqndssW4JZ5Skjkd99wUuZ8xgN2u-y5k2DE6JyVhNs-WGZRHljuvMwqD4WJUK0s5GVkMcOno4_13zodAdcp7s574Lsg_HlLGTdTZUUGnGw82i_O',
+                          swaps: const [],
+                          instructions: smoothieRecipe.instructions,
+                        );
+                        context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
                       },
                       recipe: smoothieRecipe,
                     ),
@@ -698,9 +752,17 @@ class HomeScreenState extends State<HomeScreen> {
                       sub: '340 kcal • Bữa trưa',
                       imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQbkrCL1b-kYmHUQwEoXS7-0OVjGa0EUsk7bTYH5SC_NEjDYHtbYR1TFrq8UpvEDzoggt5tQvvGIaSTjYMiDBmTZkW5eKobtHiN1_jM1vYC7PTYphsTfaC4bBgKGuRhunkV-gNpG3sdRh1tcDwXlgOfAryWjoCR5LlBFgfuSUlEDbbrlx-LgNUp7t-CT7jdaX4tF8Gei1w3q7xen2Ro3PmcgGV-a02-dtPHEb_LpUo5utymUXilHruepaN0GLR34TD0A-iq6YfOOoY',
                       calories: 340,
-                      isEaten: calorieState.eatenRecipes['Cá Tuyết Hấp Tàu Xì'] ?? false,
+                      isEaten: eatenRecipes['Cá Tuyết Hấp Tàu Xì'] ?? false,
                       onEatenToggle: (val) {
-                        context.read<CalorieTrackerCubit>().toggleEaten('Cá Tuyết Hấp Tàu Xì', 340);
+                        final mealItem = MealItemModel(
+                          type: 'Bữa trưa',
+                          name: 'Cá Tuyết Hấp Tàu Xì',
+                          calories: 340,
+                          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQbkrCL1b-kYmHUQwEoXS7-0OVjGa0EUsk7bTYH5SC_NEjDYHtbYR1TFrq8UpvEDzoggt5tQvvGIaSTjYMiDBmTZkW5eKobtHiN1_jM1vYC7PTYphsTfaC4bBgKGuRhunkV-gNpG3sdRh1tcDwXlgOfAryWjoCR5LlBFgfuSUlEDbbrlx-LgNUp7t-CT7jdaX4tF8Gei1w3q7xen2Ro3PmcgGV-a02-dtPHEb_LpUo5utymUXilHruepaN0GLR34TD0A-iq6YfOOoY',
+                          swaps: const [],
+                          instructions: codRecipe.instructions,
+                        );
+                        context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
                       },
                       recipe: codRecipe,
                     ),
@@ -713,7 +775,7 @@ class HomeScreenState extends State<HomeScreen> {
                         if (recipe.recipeName == 'Smoothie Việt Quất' || recipe.recipeName == 'Cá Tuyết Hấp Tàu Xì') {
                           return const SizedBox.shrink();
                         }
-                        final isEaten = calorieState.eatenRecipes[recipe.recipeName] ?? false;
+                        final isEaten = eatenRecipes[recipe.recipeName] ?? false;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12.0),
                           child: _buildSavedRecipeCard(
@@ -724,7 +786,15 @@ class HomeScreenState extends State<HomeScreen> {
                             calories: recipe.calories,
                             isEaten: isEaten,
                             onEatenToggle: (val) {
-                              context.read<CalorieTrackerCubit>().toggleEaten(recipe.recipeName, recipe.calories);
+                              final mealItem = MealItemModel(
+                                type: 'Món ăn tự chọn',
+                                name: recipe.recipeName,
+                                calories: recipe.calories,
+                                imageUrl: '',
+                                swaps: const [],
+                                instructions: recipe.instructions,
+                              );
+                              context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
                             },
                             recipe: recipe,
                           ),
@@ -888,5 +958,501 @@ class HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  void _showEatenMealsBottomSheet(BuildContext context, List<MealItemModel> eatenMeals) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+          ),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    Localizations.localeOf(context).languageCode == 'vi'
+                        ? 'Món ăn đã nạp hôm nay'
+                        : 'Meals Consumed Today',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (eatenMeals.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.restaurant_menu, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 12),
+                        Text(
+                          Localizations.localeOf(context).languageCode == 'vi'
+                              ? 'Hôm nay bạn chưa nạp món ăn nào.'
+                              : 'You haven\'t logged any meals today.',
+                          style: const TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: eatenMeals.length,
+                    itemBuilder: (context, index) {
+                      final meal = eatenMeals[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.delayed(const Duration(milliseconds: 200), () {
+                            _showMealDetailSheet(context, meal);
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? theme.colorScheme.surfaceContainerHigh : Colors.grey[50],
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  meal.imageUrl,
+                                  width: 56,
+                                  height: 56,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (c, e, s) => Container(
+                                    width: 56,
+                                    height: 56,
+                                    color: theme.colorScheme.surfaceContainerHighest,
+                                    child: Icon(Icons.restaurant, color: theme.colorScheme.primary, size: 24),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      Localizations.localeOf(context).languageCode == 'vi'
+                                          ? meal.type
+                                          : (meal.type == 'Bữa sáng'
+                                              ? 'Breakfast'
+                                              : (meal.type == 'Bữa trưa' ? 'Lunch' : 'Dinner')),
+                                      style: TextStyle(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      meal.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.local_fire_department, size: 12, color: Colors.orange),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${meal.calories} kcal',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right, color: Colors.grey),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMealDetailSheet(BuildContext context, MealItemModel meal) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final displayInstructions = meal.instructions.isNotEmpty
+        ? meal.instructions
+        : _getFallbackInstructions(meal.name);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+          ),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    Localizations.localeOf(context).languageCode == 'vi' ? 'Chi tiết món ăn' : 'Meal Details',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.network(
+                        meal.imageUrl,
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(
+                          height: 180,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Icon(Icons.restaurant, size: 48, color: theme.colorScheme.primary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      Localizations.localeOf(context).languageCode == 'vi' 
+                          ? meal.type.toUpperCase() 
+                          : (meal.type == 'Bữa sáng' ? 'BREAKFAST' : (meal.type == 'Bữa trưa' ? 'LUNCH' : 'DINNER')),
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      meal.name,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.local_fire_department, color: Colors.orange, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${meal.calories} calo',
+                                style: const TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      Localizations.localeOf(context).languageCode == 'vi' ? 'Cách chế biến' : 'Preparation',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...displayInstructions.asMap().entries.map((entry) {
+                      final idx = entry.key + 1;
+                      final step = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 11,
+                              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              child: Text(
+                                '$idx',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                step,
+                                style: const TextStyle(fontSize: 14, height: 1.4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  List<String> _getFallbackInstructions(String mealName) {
+    return [
+      'Chuẩn bị đầy đủ các nguyên liệu sạch cho món "$mealName".',
+      'Sơ chế và rửa sạch nguyên liệu, thái miếng vừa ăn.',
+      'Chế biến chín thực phẩm (luộc, hấp, áp chảo hoặc nướng tùy món) để giữ trọn dinh dưỡng.',
+      'Trình bày món ăn ra đĩa, trang trí thêm rau thơm và thưởng thức khi còn nóng.'
+    ];
+  }
+
+  // --- Weekly Calendar Widget ---
+  Widget _buildWeeklyCalendar(ThemeData theme, bool isDark) {
+    final monday = _focusedWeekDay.subtract(Duration(days: _focusedWeekDay.weekday - 1));
+    final dayLabels = Localizations.localeOf(context).languageCode == 'vi' 
+        ? ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'] 
+        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: () {
+                setState(() {
+                  _focusedWeekDay = _focusedWeekDay.subtract(const Duration(days: 7));
+                });
+              },
+            ),
+            Text(
+              _getWeekRangeLabel(),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed: () {
+                setState(() {
+                  _focusedWeekDay = _focusedWeekDay.add(const Duration(days: 7));
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 64,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: 7,
+            itemBuilder: (context, i) {
+              final day = monday.add(Duration(days: i));
+              final isSelected = day.day == _selectedDate.day &&
+                  day.month == _selectedDate.month &&
+                  day.year == _selectedDate.year;
+              final isRealToday = day.day == DateTime.now().day &&
+                  day.month == DateTime.now().month &&
+                  day.year == DateTime.now().year;
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedDate = day;
+                  });
+                },
+                child: Container(
+                  width: 52,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? LinearGradient(
+                            colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isSelected
+                        ? null
+                        : (isDark ? theme.colorScheme.surfaceContainer : Colors.white),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.transparent
+                          : (isRealToday 
+                              ? theme.colorScheme.primary.withValues(alpha: 0.6) 
+                              : theme.colorScheme.outlineVariant.withValues(alpha: 0.2)),
+                      width: isRealToday ? 1.5 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            )
+                          ]
+                        : null,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        dayLabels[i],
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white70 : Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${day.day}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : (isRealToday ? theme.colorScheme.primary : null),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getWeekRangeLabel() {
+    final isVi = Localizations.localeOf(context).languageCode == 'vi';
+    final monday = _focusedWeekDay.subtract(Duration(days: _focusedWeekDay.weekday - 1));
+    final sunday = monday.add(const Duration(days: 6));
+    if (_isCurrentWeek(_focusedWeekDay)) {
+      return isVi ? 'Tuần này' : 'This Week';
+    }
+    return isVi 
+        ? '${monday.day}/${monday.month} - ${sunday.day}/${sunday.month}' 
+        : '${monday.day}/${monday.month} - ${sunday.day}/${sunday.month}';
+  }
+
+  bool _isCurrentWeek(DateTime date) {
+    final now = DateTime.now();
+    final mondayNow = now.subtract(Duration(days: now.weekday - 1));
+    final sundayNow = mondayNow.add(const Duration(days: 6));
+    
+    final mondayStart = DateTime(mondayNow.year, mondayNow.month, mondayNow.day);
+    final sundayEnd = DateTime(sundayNow.year, sundayNow.month, sundayNow.day, 23, 59, 59);
+    return date.isAfter(mondayStart.subtract(const Duration(seconds: 1))) && 
+           date.isBefore(sundayEnd.add(const Duration(seconds: 1)));
   }
 }

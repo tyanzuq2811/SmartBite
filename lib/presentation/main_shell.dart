@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
+import '../core/localization/app_localizations.dart';
 import 'home/home_screen.dart';
 import 'input_hub/input_hub_screen.dart';
 import 'plan/plan_screen.dart';
@@ -66,26 +67,26 @@ class MainShellState extends State<MainShell> {
         onDestinationSelected: onTabSelected,
         backgroundColor: theme.colorScheme.surface,
         indicatorColor: isDark ? const Color(0x3D34D399) : const Color(0x1F10B981),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Trang chủ',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: context.translate('navHome'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.document_scanner_outlined),
-            selectedIcon: Icon(Icons.document_scanner),
-            label: 'Máy quét',
+            icon: const Icon(Icons.document_scanner_outlined),
+            selectedIcon: const Icon(Icons.document_scanner),
+            label: context.translate('navScanner'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.restaurant_menu_outlined),
-            selectedIcon: Icon(Icons.restaurant_menu),
-            label: 'Công thức',
+            icon: const Icon(Icons.restaurant_menu_outlined),
+            selectedIcon: const Icon(Icons.restaurant_menu),
+            label: context.translate('navRecipes'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Cài đặt',
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: context.translate('navSettings'),
           ),
         ],
       ),
