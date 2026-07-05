@@ -9,6 +9,7 @@
 *   **Nhận diện nguyên liệu bằng AI trên thiết bị (On-Device ML)**: Ứng dụng tích hợp mô hình TensorFlow Lite (`yolov8n_food.tflite`) giúp nhận diện thực phẩm tức thời, hoạt động tốt ngay cả khi không có mạng, với cơ chế fallback sang ML Kit. Hỗ trợ nhận diện món ăn và chuyển ngữ sang tiếng Việt.
 *   **Gợi ý công thức thông minh (Gemini API)**: Tạo công thức nấu ăn cá nhân hóa dựa trên nguyên liệu hiện có, chế độ ăn (Diet), dị ứng (Allergies), món thích/không thích.
 *   **Trải nghiệm UI/UX mượt mà, cao cấp**: 
+    *   **Weekly Timeline Calendar**: Tích hợp thanh lịch chọn ngày hàng tuần nằm ngang tại trang chủ, cho phép kiểm tra lượng calo và xem chi tiết các món ăn đã nạp của bất kỳ ngày nào trong quá khứ/tương lai.
     *   **Concentric Rings**: Vòng tròn đồng tâm trực quan theo dõi Macronutrients (Đạm, Béo, Tinh bột).
     *   **SharedAxis Transitions**: Hiệu ứng chuyển tab (PageTransitionSwitcher) mượt mà chuẩn Material Design.
     *   **OpenContainer**: Hiệu ứng mở chi tiết món ăn phóng to mượt mà từ thẻ.
@@ -36,15 +37,15 @@ Dự án áp dụng **Clean Architecture** kết hợp với mô hình **Reposit
 
 ```mermaid
 graph TD
-    A[UI Layer] --> B[BLoC/Cubit Layer]
-    B --> C[Repository Layer]
-    C --> D[Data Sources]
-    D --> E[(SQLite FTS5 - Local)]
-    D --> F[(Firebase Firestore - Cloud)]
-    D --> G[Gemini API - AI]
-    D --> H[OnDeviceDetector - TFLite]
-    B --> I[HydratedBloc - Persistent State]
-    C --> J[SyncManager - Auto Sync Queue]
+    A["UI Layer"] --> B["BLoC/Cubit Layer"]
+    B --> C["Repository Layer"]
+    C --> D["Data Sources"]
+    D --> E[("SQLite FTS5 - Local")]
+    D --> F[("Firebase Firestore - Cloud")]
+    D --> G["Gemini API - AI"]
+    D --> H["OnDeviceDetector - TFLite"]
+    B --> I["HydratedBloc - Persistent State"]
+    C --> J["SyncManager - Auto Sync Queue"]
 ```
 
 ---
@@ -60,8 +61,8 @@ graph TD
 
 1.  **Clone dự án**:
     ```bash
-    git clone https://github.com/nguyenduythuan1771040024/smartbite.git
-    cd smartbite
+    git clone https://github.com/tyanzuq2811/SmartBite.git
+    cd SmartBite
     ```
 
 2.  **Cài đặt dependencies**:
@@ -75,10 +76,16 @@ graph TD
     ```
 
 4.  **Cấu hình API Key Gemini**:
-    Ứng dụng yêu cầu API Key của Gemini. Khi chạy ứng dụng, bạn cần truyền API Key qua biến môi trường:
-    ```bash
-    flutter run --dart-define=GEMINI_API_KEY=your_api_key_here
-    ```
+    Ứng dụng sử dụng `flutter_dotenv` để quản lý bảo mật thông tin.
+    * Tạo file `.env` ở thư mục gốc của dự án.
+    * Thêm API Key của bạn vào file `.env` theo định dạng:
+      ```env
+      GEMINI_API_KEY=your_gemini_api_key_here
+      ```
+    * Chạy ứng dụng bình thường:
+      ```bash
+      flutter run
+      ```
 
 ### Hỗ trợ Web (Web Compatibility)
 Dự án đã được xử lý tương thích cho Web bằng **Conditional Imports**. Tính năng TFLite (`dart:ffi`) tự động fallback sang cơ chế khác khi chạy trên nền tảng Web để tránh lỗi biên dịch.
