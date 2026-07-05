@@ -60,6 +60,7 @@ dependencies:
   image: ^4.8.0
   animations: ^2.2.0
   flutter_staggered_animations: ^1.1.1
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +90,7 @@ flutter:
   assets:
     - assets/yolov8n_food.tflite
     - assets/labels.txt
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -36,8 +36,13 @@ import 'presentation/main_shell.dart';
 import 'presentation/settings/settings_screen.dart';
 import 'presentation/admin/admin_dashboard.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
 
   // Initialize Firebase
   await Firebase.initializeApp(

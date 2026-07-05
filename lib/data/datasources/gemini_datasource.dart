@@ -5,6 +5,7 @@ import '../../core/errors/exceptions.dart';
 import '../models/recipe_model.dart';
 
 import 'package:injectable/injectable.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 abstract class GeminiDataSource {
   bool get hasApiKey;
@@ -39,10 +40,7 @@ class GeminiDataSourceImpl implements GeminiDataSource {
   final String _apiKey;
 
   GeminiDataSourceImpl()
-      : _apiKey = const String.fromEnvironment(
-          'GEMINI_API_KEY',
-          defaultValue: '',
-        );
+      : _apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
 
   @override
   bool get hasApiKey => _apiKey.isNotEmpty && (_apiKey.startsWith('AIzaSy') || _apiKey.startsWith('AQ.'));
