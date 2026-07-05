@@ -26,6 +26,8 @@ abstract class GeminiDataSource {
     required List<String> likes,
   });
 
+  Future<List<String>> detectIngredientsFromImage(String imageBase64);
+
   Future<Map<String, dynamic>> generateMealPlan({
     required String diet,
     required List<String> allergies,
@@ -95,6 +97,49 @@ class GeminiDataSourceImpl implements GeminiDataSource {
       );
       return response.text ?? '';
     });
+  }
+
+  @override
+  Future<List<String>> detectIngredientsFromImage(String imageBase64) async {
+    if (_apiKey.isEmpty) {
+      return ['Ức gà', 'Bông cải xanh', 'Cà rốt'];
+    }
+
+    final prompt = '''
+Hãy phân tích hình ảnh này.
+Nhiệm vụ: Hãy tìm và nhận diện tất cả các loại nguyên liệu thực phẩm, món ăn, rau củ quả hoặc nguyên liệu nấu ăn có mặt trong ảnh.
+Trả về kết quả dưới dạng một JSON Array gồm các chuỗi tên nguyên liệu bằng tiếng Việt (ví dụ: ["Cá hồi", "Cà chua", "Hành tây"]).
+Yêu cầu định dạng: Chỉ trả về JSON Array duy nhất, không thêm bất kỳ văn bản giải thích nào khác ngoài khối JSON.
+Nếu không nhận diện được thực phẩm nào, hãy trả về một mảng rỗng: []
+''';
+
+    final imageBytes = base64Decode(imageBase64);
+    try {
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: _apiKey,
+        generationConfig: GenerationConfig(responseMimeType: 'application/json'),
+      );
+      final response = await model.generateContent([
+        Content.multi([
+          TextPart(prompt),
+          DataPart('image/jpeg', imageBytes),
+        ])
+      ]).timeout(
+        const Duration(minutes: 1),
+        onTimeout: () => throw TimeoutException('Kết nối đến Gemini AI bị quá hạn khi quét ảnh.'),
+      );
+
+      final text = response.text ?? '[]';
+      final decoded = jsonDecode(text.trim());
+      if (decoded is List) {
+        return decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+      }
+      return [];
+    } catch (e) {
+      print('[GeminiDataSource] Lỗi nhận diện nguyên liệu từ ảnh: $e');
+      return [];
+    }
   }
 
   // --- Core execution with Timeout & Silent Retry ---
