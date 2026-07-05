@@ -730,16 +730,25 @@ class HomeScreenState extends State<HomeScreen> {
                       imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjMkk0JDqdMeLbvCeuHlvbZOE5LQoLbVF0_9JTZMSELaU1VOTucKjr9W6Q4OzevndSwdw2KNrjEWZaQQdi9IOgguLqCFmfjUTcX698fWt9ZFOvwdiCgTChESeUDgLd9WqsN5V6x0-M4kTpb0ksVFazSicTqnf6yXqndssW4JZ5Skjkd99wUuZ8xgN2u-y5k2DE6JyVhNs-WGZRHljuvMwqD4WJUK0s5GVkMcOno4_13zodAdcp7s574Lsg_HlLGTdTZUUGnGw82i_O',
                       calories: 210,
                       isEaten: eatenRecipes['Smoothie Việt Quất'] ?? false,
-                      onEatenToggle: (val) {
-                        final mealItem = MealItemModel(
-                          type: 'Bữa phụ',
-                          name: 'Smoothie Việt Quất',
-                          calories: 210,
-                          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjMkk0JDqdMeLbvCeuHlvbZOE5LQoLbVF0_9JTZMSELaU1VOTucKjr9W6Q4OzevndSwdw2KNrjEWZaQQdi9IOgguLqCFmfjUTcX698fWt9ZFOvwdiCgTChESeUDgLd9WqsN5V6x0-M4kTpb0ksVFazSicTqnf6yXqndssW4JZ5Skjkd99wUuZ8xgN2u-y5k2DE6JyVhNs-WGZRHljuvMwqD4WJUK0s5GVkMcOno4_13zodAdcp7s574Lsg_HlLGTdTZUUGnGw82i_O',
-                          swaps: const [],
-                          instructions: smoothieRecipe.instructions,
+                      onEatenToggle: (val) async {
+                        final confirm = await Dialogs.showConfirmDialog(
+                          context: context,
+                          title: Localizations.localeOf(context).languageCode == 'vi' ? 'Xác nhận thay đổi' : 'Confirm Change',
+                          content: Localizations.localeOf(context).languageCode == 'vi'
+                              ? 'Bạn có chắc chắn muốn ${val ? "thêm" : "xóa"} "Smoothie Việt Quất" ${val ? "vào" : "khỏi"} danh sách món ăn đã ăn?'
+                              : 'Are you sure you want to ${val ? "add" : "remove"} "Smoothie Việt Quất" ${val ? "to" : "from"} eaten list?',
                         );
-                        context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                        if (confirm && context.mounted) {
+                          final mealItem = MealItemModel(
+                            type: 'Bữa phụ',
+                            name: 'Smoothie Việt Quất',
+                            calories: 210,
+                            imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjMkk0JDqdMeLbvCeuHlvbZOE5LQoLbVF0_9JTZMSELaU1VOTucKjr9W6Q4OzevndSwdw2KNrjEWZaQQdi9IOgguLqCFmfjUTcX698fWt9ZFOvwdiCgTChESeUDgLd9WqsN5V6x0-M4kTpb0ksVFazSicTqnf6yXqndssW4JZ5Skjkd99wUuZ8xgN2u-y5k2DE6JyVhNs-WGZRHljuvMwqD4WJUK0s5GVkMcOno4_13zodAdcp7s574Lsg_HlLGTdTZUUGnGw82i_O',
+                            swaps: const [],
+                            instructions: smoothieRecipe.instructions,
+                          );
+                          context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                        }
                       },
                       recipe: smoothieRecipe,
                     ),
@@ -753,16 +762,25 @@ class HomeScreenState extends State<HomeScreen> {
                       imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQbkrCL1b-kYmHUQwEoXS7-0OVjGa0EUsk7bTYH5SC_NEjDYHtbYR1TFrq8UpvEDzoggt5tQvvGIaSTjYMiDBmTZkW5eKobtHiN1_jM1vYC7PTYphsTfaC4bBgKGuRhunkV-gNpG3sdRh1tcDwXlgOfAryWjoCR5LlBFgfuSUlEDbbrlx-LgNUp7t-CT7jdaX4tF8Gei1w3q7xen2Ro3PmcgGV-a02-dtPHEb_LpUo5utymUXilHruepaN0GLR34TD0A-iq6YfOOoY',
                       calories: 340,
                       isEaten: eatenRecipes['Cá Tuyết Hấp Tàu Xì'] ?? false,
-                      onEatenToggle: (val) {
-                        final mealItem = MealItemModel(
-                          type: 'Bữa trưa',
-                          name: 'Cá Tuyết Hấp Tàu Xì',
-                          calories: 340,
-                          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQbkrCL1b-kYmHUQwEoXS7-0OVjGa0EUsk7bTYH5SC_NEjDYHtbYR1TFrq8UpvEDzoggt5tQvvGIaSTjYMiDBmTZkW5eKobtHiN1_jM1vYC7PTYphsTfaC4bBgKGuRhunkV-gNpG3sdRh1tcDwXlgOfAryWjoCR5LlBFgfuSUlEDbbrlx-LgNUp7t-CT7jdaX4tF8Gei1w3q7xen2Ro3PmcgGV-a02-dtPHEb_LpUo5utymUXilHruepaN0GLR34TD0A-iq6YfOOoY',
-                          swaps: const [],
-                          instructions: codRecipe.instructions,
+                      onEatenToggle: (val) async {
+                        final confirm = await Dialogs.showConfirmDialog(
+                          context: context,
+                          title: Localizations.localeOf(context).languageCode == 'vi' ? 'Xác nhận thay đổi' : 'Confirm Change',
+                          content: Localizations.localeOf(context).languageCode == 'vi'
+                              ? 'Bạn có chắc chắn muốn ${val ? "thêm" : "xóa"} "Cá Tuyết Hấp Tàu Xì" ${val ? "vào" : "khỏi"} danh sách món ăn đã ăn?'
+                              : 'Are you sure you want to ${val ? "add" : "remove"} "Cá Tuyết Hấp Tàu Xì" ${val ? "to" : "from"} eaten list?',
                         );
-                        context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                        if (confirm && context.mounted) {
+                          final mealItem = MealItemModel(
+                            type: 'Bữa trưa',
+                            name: 'Cá Tuyết Hấp Tàu Xì',
+                            calories: 340,
+                            imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQbkrCL1b-kYmHUQwEoXS7-0OVjGa0EUsk7bTYH5SC_NEjDYHtbYR1TFrq8UpvEDzoggt5tQvvGIaSTjYMiDBmTZkW5eKobtHiN1_jM1vYC7PTYphsTfaC4bBgKGuRhunkV-gNpG3sdRh1tcDwXlgOfAryWjoCR5LlBFgfuSUlEDbbrlx-LgNUp7t-CT7jdaX4tF8Gei1w3q7xen2Ro3PmcgGV-a02-dtPHEb_LpUo5utymUXilHruepaN0GLR34TD0A-iq6YfOOoY',
+                            swaps: const [],
+                            instructions: codRecipe.instructions,
+                          );
+                          context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                        }
                       },
                       recipe: codRecipe,
                     ),
@@ -785,16 +803,25 @@ class HomeScreenState extends State<HomeScreen> {
                             imageUrl: '', // fallback to default icon
                             calories: recipe.calories,
                             isEaten: isEaten,
-                            onEatenToggle: (val) {
-                              final mealItem = MealItemModel(
-                                type: 'Món ăn tự chọn',
-                                name: recipe.recipeName,
-                                calories: recipe.calories,
-                                imageUrl: '',
-                                swaps: const [],
-                                instructions: recipe.instructions,
+                            onEatenToggle: (val) async {
+                              final confirm = await Dialogs.showConfirmDialog(
+                                context: context,
+                                title: Localizations.localeOf(context).languageCode == 'vi' ? 'Xác nhận thay đổi' : 'Confirm Change',
+                                content: Localizations.localeOf(context).languageCode == 'vi'
+                                    ? 'Bạn có chắc chắn muốn ${val ? "thêm" : "xóa"} "${recipe.recipeName}" ${val ? "vào" : "khỏi"} danh sách món ăn đã ăn?'
+                                    : 'Are you sure you want to ${val ? "add" : "remove"} "${recipe.recipeName}" ${val ? "to" : "from"} eaten list?',
                               );
-                              context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                              if (confirm && context.mounted) {
+                                final mealItem = MealItemModel(
+                                  type: 'Món ăn tự chọn',
+                                  name: recipe.recipeName,
+                                  calories: recipe.calories,
+                                  imageUrl: '',
+                                  swaps: const [],
+                                  instructions: recipe.instructions,
+                                );
+                                context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                              }
                             },
                             recipe: recipe,
                           ),
@@ -1119,7 +1146,23 @@ class HomeScreenState extends State<HomeScreen> {
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.chevron_right, color: Colors.grey),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                onPressed: () async {
+                                  final dateStr = _getDateStr(_selectedDate);
+                                  final confirm = await Dialogs.showConfirmDialog(
+                                    context: itemContext,
+                                    title: Localizations.localeOf(sheetContext).languageCode == 'vi' ? 'Xác nhận xóa' : 'Confirm Delete',
+                                    content: Localizations.localeOf(sheetContext).languageCode == 'vi'
+                                        ? 'Bạn có chắc chắn muốn xóa món "${meal.name}" khỏi danh sách đã ăn?'
+                                        : 'Are you sure you want to remove "${meal.name}" from eaten list?',
+                                  );
+                                  if (confirm && context.mounted) {
+                                    context.read<CalorieTrackerCubit>().toggleEaten(meal, dateStr);
+                                    Navigator.pop(sheetContext);
+                                  }
+                                },
+                              ),
                             ],
                           ),
                         ),

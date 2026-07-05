@@ -8,6 +8,7 @@ import '../../data/datasources/gemini_datasource.dart';
 import '../../data/models/meal_plan_model.dart';
 import '../../core/di/injection.dart';
 import '../../core/localization/app_localizations.dart';
+import '../shared/widgets.dart';
 
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});
@@ -289,6 +290,18 @@ class _PlanScreenState extends State<PlanScreen> {
     if (_userId == null) return;
 
     final dateStr = _getFormattedDate(_selectedDate);
+    final trackerStateBefore = context.read<CalorieTrackerCubit>().state;
+    final currentlyEaten = trackerStateBefore.getEatenRecipesForDate(dateStr)[meal.name] ?? false;
+
+    final confirm = await Dialogs.showConfirmDialog(
+      context: context,
+      title: Localizations.localeOf(context).languageCode == 'vi' ? 'Xác nhận thay đổi' : 'Confirm Change',
+      content: Localizations.localeOf(context).languageCode == 'vi'
+          ? 'Bạn có chắc chắn muốn ${currentlyEaten ? "xóa" : "thêm"} "${meal.name}" ${currentlyEaten ? "khỏi" : "vào"} danh sách món ăn đã ăn?'
+          : 'Are you sure you want to ${currentlyEaten ? "remove" : "add"} "${meal.name}" ${currentlyEaten ? "from" : "to"} eaten list?',
+    );
+    if (!confirm || !mounted) return;
+
     context.read<CalorieTrackerCubit>().toggleEaten(meal, dateStr);
 
     // Get updated states

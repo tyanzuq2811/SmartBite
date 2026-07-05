@@ -416,3 +416,38 @@ class _CaloriesRingPainter extends CustomPainter {
         oldDelegate.isDark != isDark;
   }
 }
+
+class Dialogs {
+  static Future<bool> showConfirmDialog({
+    required BuildContext context,
+    required String title,
+    required String content,
+  }) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              Localizations.localeOf(context).languageCode == 'vi' ? 'Hủy' : 'Cancel',
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              Localizations.localeOf(context).languageCode == 'vi' ? 'Xác nhận' : 'Confirm',
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+}

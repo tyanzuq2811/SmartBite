@@ -8,6 +8,7 @@ import '../../data/datasources/firebase_datasource.dart';
 import '../../data/models/meal_plan_model.dart';
 import '../auth/auth_bloc.dart';
 import '../../core/localization/app_localizations.dart';
+import '../shared/widgets.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
@@ -395,6 +396,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
                     return ElevatedButton.icon(
                       onPressed: () async {
+                        final confirm = await Dialogs.showConfirmDialog(
+                          context: context,
+                          title: Localizations.localeOf(context).languageCode == 'vi' ? 'Xác nhận thay đổi' : 'Confirm Change',
+                          content: Localizations.localeOf(context).languageCode == 'vi'
+                              ? 'Bạn có chắc chắn muốn ${isEaten ? "xóa" : "thêm"} "${widget.recipe.recipeName}" ${isEaten ? "khỏi" : "vào"} danh sách món ăn đã ăn?'
+                              : 'Are you sure you want to ${isEaten ? "remove" : "add"} "${widget.recipe.recipeName}" ${isEaten ? "from" : "to"} eaten list?',
+                        );
+                        if (!confirm || !context.mounted) return;
+
                         final mealItem = MealItemModel(
                           type: 'Món ăn tự chọn',
                           name: widget.recipe.recipeName,
