@@ -240,6 +240,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ),
                     ],
                   ),
+                  if (_buildBadgeRelationTag(widget.recipe.recipeName, widget.recipe.calories, theme) != null) ...[
+                    const SizedBox(height: 10),
+                    _buildBadgeRelationTag(widget.recipe.recipeName, widget.recipe.calories, theme)!,
+                  ],
                 ],
               ),
             ),
@@ -492,6 +496,60 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
         ),
       ],
+    );
+  }
+
+  Widget? _buildBadgeRelationTag(String mealName, int calories, ThemeData theme) {
+    final nameLower = mealName.toLowerCase();
+
+    if (nameLower.contains('chay') || nameLower.contains('đậu hũ') || nameLower.contains('rau củ') || nameLower.contains('salad') || nameLower.contains('quinoa')) {
+      return _badgeTag(
+        label: Localizations.localeOf(context).languageCode == 'vi' ? 'Tích lũy: Ăn chay 🥬' : 'Badge: Veggie Champion 🥬',
+        color: Colors.green,
+      );
+    }
+
+    if (nameLower.contains('gạo lứt') || nameLower.contains('yến mạch') || nameLower.contains('khoai lang') || nameLower.contains('quinoa')) {
+      return _badgeTag(
+        label: Localizations.localeOf(context).languageCode == 'vi' ? 'Tích lũy: Tinh bột tốt 🌾' : 'Badge: Carb Cleaner 🌾',
+        color: Colors.orange,
+      );
+    }
+
+    if (calories <= 400 && (nameLower.contains('ức gà') || nameLower.contains('cá hồi') || nameLower.contains('salad') || nameLower.contains('súp lơ') || nameLower.contains('chay') || nameLower.contains('rau'))) {
+      return _badgeTag(
+        label: Localizations.localeOf(context).languageCode == 'vi' ? 'Tích lũy: Giảm mỡ ⚡' : 'Badge: Fat Destroyer ⚡',
+        color: Colors.amber,
+      );
+    }
+
+    if (calories >= 500 || nameLower.contains('bò') || nameLower.contains('ức gà') || nameLower.contains('cá hồi') || nameLower.contains('trứng') || nameLower.contains('đùi gà')) {
+      return _badgeTag(
+        label: Localizations.localeOf(context).languageCode == 'vi' ? 'Tích lũy: Tăng cơ 💪' : 'Badge: Protein Beast 💪',
+        color: Colors.redAccent,
+      );
+    }
+
+    return null;
+  }
+
+  Widget _badgeTag({required String label, required Color color}) {
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 0.8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

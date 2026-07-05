@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/constants/app_theme.dart';
+import '../../core/di/injection.dart';
+import '../../data/datasources/firebase_datasource.dart';
+import '../../data/models/feedback_model.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../auth/auth_bloc.dart';
@@ -14,7 +17,10 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   List<UserEntity> _users = [];
+  List<FeedbackMessageModel> _feedbackMessages = [];
   bool _isLoading = true;
+  bool _isLoadingFeedback = false;
+  int _selectedTab = 0;
   String _searchQuery = '';
   String _selectedRoleFilter = 'Tất cả'; // Tất cả, user, admin
   String _selectedStatusFilter = 'Tất cả'; // Tất cả, active, banned
@@ -23,6 +29,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void initState() {
     super.initState();
     _loadUsers();
+    _loadFeedbackMessages();
   }
 
   Future<void> _loadUsers() async {
@@ -46,6 +53,29 @@ class _AdminDashboardState extends State<AdminDashboard> {
       });
     }
   }
+
+  Future<void> _loadFeedbackMessages() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingFeedback = true;
+    });
+
+    try {
+      final list = await getIt<FirebaseDataSource>().getFeedbackMessages();
+      if (!mounted) return;
+      setState(() {
+        _feedbackMessages = list;
+        _isLoadingFeedback = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingFeedback = false;
+      });
+    }
+  }
+
+  int get _unreadFeedbackCount => _feedbackMessages.where((feedback) => !feedback.isRead).length;
 
   Future<void> _toggleUserStatus(UserEntity user, bool isBanned) async {
     final action = isBanned ? 'KHOÁ' : 'MỞ KHOÁ';
@@ -331,6 +361,78 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  void _handleTabChanged(int index) {
+    setState(() {
+      _selectedTab = index;
+    });
+    if (index == 1 && _feedbackMessages.isEmpty && !_isLoadingFeedback) {
+      _loadFeedbackMessages();
+    }
+  }
+
+  Future<void> _markFeedbackRead(FeedbackMessageModel feedback) async {
+    try {
+      await getIt<FirebaseDataSource>().updateFeedbackStatus(
+        feedback.id,
+        isRead: true,
+      );
+      if (!mounted) return;
+      setState(() {
+        final index = _feedbackMessages.indexWhere((item) => item.id == feedback.id);
+        if (index != -1) {
+          _feedbackMessages[index] = _feedbackMessages[index].copyWith(
+            isRead: true,
+            readAt: DateTime.now(),
+          );
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi đánh dấu đã đọc: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _markFeedbackProcessed(FeedbackMessageModel feedback) async {
+    String? adminId;
+    String? adminName;
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthenticatedAdmin) {
+      adminId = authState.user.userId;
+      adminName = authState.user.profile.name;
+    }
+
+    try {
+      await getIt<FirebaseDataSource>().updateFeedbackStatus(
+        feedback.id,
+        isRead: true,
+        isProcessed: true,
+        processedById: adminId,
+        processedByName: adminName,
+      );
+      if (!mounted) return;
+      setState(() {
+        final index = _feedbackMessages.indexWhere((item) => item.id == feedback.id);
+        if (index != -1) {
+          _feedbackMessages[index] = _feedbackMessages[index].copyWith(
+            isRead: true,
+            isProcessed: true,
+            readAt: DateTime.now(),
+            processedAt: DateTime.now(),
+            processedById: adminId,
+            processedByName: adminName,
+          );
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi đánh dấu đã xử lý: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -387,27 +489,88 @@ class _AdminDashboardState extends State<AdminDashboard> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  // Premium Statistics Grid
-                  _buildStatsGrid(totalCount, activeCount, bannedCount, adminCount, isDark),
-                  
-                  // Search & Filter controls
-                  _buildSearchAndFilters(isDark, theme),
-                  
-                  // User Cards List (Flexible for mobile and web screens)
-                  Expanded(
-                    child: filteredUsers.isEmpty
-                        ? _buildEmptyState(isDark)
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: filteredUsers.length,
-                            itemBuilder: (context, index) {
+            : CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _buildStatsGrid(totalCount, activeCount, bannedCount, adminCount, isDark),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: SegmentedButton<int>(
+                        segments: [
+                          const ButtonSegment(value: 0, label: Text('Người dùng'), icon: Icon(Icons.people_alt_outlined)),
+                          ButtonSegment(
+                            value: 1,
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('Phản hồi'),
+                                if (_unreadFeedbackCount > 0) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      _unreadFeedbackCount.toString(),
+                                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            icon: const Icon(Icons.feedback_outlined),
+                          ),
+                        ],
+                        selected: {_selectedTab},
+                        onSelectionChanged: (values) => _handleTabChanged(values.first),
+                      ),
+                    ),
+                  ),
+                  if (_selectedTab == 0) ...[
+                    SliverToBoxAdapter(
+                      child: _buildSearchAndFilters(isDark, theme),
+                    ),
+                    if (filteredUsers.isEmpty)
+                      SliverToBoxAdapter(child: _buildEmptyState(isDark))
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
                               final user = filteredUsers[index];
                               return _buildUserCard(user, isDark, theme);
                             },
+                            childCount: filteredUsers.length,
                           ),
-                  ),
+                        ),
+                      ),
+                  ] else ...[
+                    if (_isLoadingFeedback)
+                      const SliverFillRemaining(
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_feedbackMessages.isEmpty)
+                      SliverFillRemaining(
+                        child: _buildFeedbackEmptyState(isDark),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.all(16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              return _buildFeedbackCard(_feedbackMessages[index], isDark, theme);
+                            },
+                            childCount: _feedbackMessages.length,
+                          ),
+                        ),
+                      ),
+                  ],
                 ],
               ),
       ),
@@ -836,6 +999,109 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 color: isDark ? Colors.white30 : Colors.black45,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeedbackCard(FeedbackMessageModel feedback, bool isDark, ThemeData theme) {
+    final recipientLabel = feedback.recipientAdminNames.isNotEmpty
+        ? 'Gửi tới: ${feedback.recipientAdminNames.join(', ')}'
+        : 'Gửi tới: ${feedback.recipientAdminName} (${feedback.recipientAdminEmail})';
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: isDark ? Colors.transparent : Colors.grey.withOpacity(0.15)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+                  child: Text(
+                    feedback.senderName.isNotEmpty ? feedback.senderName.trim().substring(0, 1).toUpperCase() : '?',
+                    style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(feedback.senderName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      const SizedBox(height: 2),
+                      Text('${feedback.senderEmail} · ${feedback.senderRole}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54)),
+                    ],
+                  ),
+                ),
+                _buildBadge(feedback.isRead ? 'ĐÃ ĐỌC' : 'MỚI', feedback.isRead ? Colors.green : Colors.orange, filled: true),
+                const SizedBox(width: 8),
+                _buildBadge(feedback.isProcessed ? 'ĐÃ XỬ LÝ' : 'CHƯA XỬ LÝ', feedback.isProcessed ? Colors.blue : Colors.grey, filled: true),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              feedback.message,
+              style: const TextStyle(fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            Text(recipientLabel, style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black45)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (!feedback.isRead)
+                  TextButton.icon(
+                    onPressed: () => _markFeedbackRead(feedback),
+                    icon: const Icon(Icons.mark_email_read_outlined, size: 16),
+                    label: const Text('Đánh dấu đã đọc'),
+                  ),
+                if (!feedback.isProcessed) ...[
+                  ElevatedButton.icon(
+                    onPressed: () => _markFeedbackProcessed(feedback),
+                    icon: const Icon(Icons.task_alt_outlined, size: 16),
+                    label: const Text('Đã xử lý'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (feedback.isProcessed && feedback.processedByName != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Xử lý bởi: ${feedback.processedByName}',
+                style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black45),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeedbackEmptyState(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.feedback_outlined, size: 56, color: isDark ? Colors.white24 : Colors.black26),
+            const SizedBox(height: 12),
+            const Text('Chưa có phản hồi nào được gửi đến admin.', textAlign: TextAlign.center),
           ],
         ),
       ),

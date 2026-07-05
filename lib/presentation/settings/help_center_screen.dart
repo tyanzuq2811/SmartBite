@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/di/injection.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../data/datasources/firebase_datasource.dart';
+import '../auth/auth_bloc.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -18,32 +22,69 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     super.dispose();
   }
 
-  void _submitFeedback() {
+  Future<void> _submitFeedback() async {
     if (_feedbackController.text.trim().isEmpty) return;
 
     setState(() => _isSubmitting = true);
 
-    // Mock sending feedback
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-        _feedbackController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.mark_email_read_outlined, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text(context.translate('feedbackSent'))),
-              ],
-            ),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+    try {
+      final authState = context.read<AuthBloc>().state;
+      String? senderId;
+      String senderName = 'Ẩn danh';
+      String senderEmail = 'unknown@example.com';
+      String senderRole = 'user';
+
+      if (authState is AuthenticatedUser) {
+        senderId = authState.user.userId;
+        senderName = authState.user.profile.name;
+        senderEmail = authState.user.email;
+        senderRole = authState.user.role;
+      } else if (authState is AuthenticatedAdmin) {
+        senderId = authState.user.userId;
+        senderName = authState.user.profile.name;
+        senderEmail = authState.user.email;
+        senderRole = authState.user.role;
       }
-    });
+
+      if (senderId == null) {
+        throw Exception('Không xác định được tài khoản người gửi.');
+      }
+
+      await getIt<FirebaseDataSource>().submitFeedback(
+        senderId: senderId,
+        senderName: senderName,
+        senderEmail: senderEmail,
+        senderRole: senderRole,
+        message: _feedbackController.text.trim(),
+      );
+
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      _feedbackController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.mark_email_read_outlined, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(child: Text(context.translate('feedbackSent'))),
+            ],
+          ),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi gửi phản hồi: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

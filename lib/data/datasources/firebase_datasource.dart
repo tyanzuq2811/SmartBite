@@ -7,6 +7,7 @@ import '../../core/errors/exceptions.dart';
 import '../models/user_model.dart';
 import '../models/meal_plan_model.dart';
 import '../models/gamification_models.dart';
+import '../models/feedback_model.dart';
 
 abstract class FirebaseDataSource {
   Future<UserModel> login({required String email, required String password});
@@ -29,6 +30,23 @@ abstract class FirebaseDataSource {
     required String email,
     required String role,
     required String status,
+  });
+
+  Future<void> submitFeedback({
+    required String senderId,
+    required String senderName,
+    required String senderEmail,
+    required String senderRole,
+    required String message,
+  });
+
+  Future<List<FeedbackMessageModel>> getFeedbackMessages();
+  Future<void> updateFeedbackStatus(
+    String feedbackId, {
+    bool? isRead,
+    bool? isProcessed,
+    String? processedById,
+    String? processedByName,
   });
 
   // Meal Plan functions
@@ -271,6 +289,94 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
     await _firestore.collection('users').doc(userId).update({
       'profile': profile.toJson(),
     });
+  }
+
+  @override
+  Future<void> submitFeedback({
+    required String senderId,
+    required String senderName,
+    required String senderEmail,
+    required String senderRole,
+    required String message,
+  }) async {
+    final adminSnapshot = await _firestore
+        .collection('users')
+        .where('role', isEqualTo: 'admin')
+        .get();
+
+    final recipientAdminIds = <String>[];
+    final recipientAdminNames = <String>[];
+    final recipientAdminEmails = <String>[];
+
+    for (final adminDoc in adminSnapshot.docs) {
+      final adminData = adminDoc.data();
+      recipientAdminIds.add(adminDoc.id);
+      recipientAdminEmails.add(adminData['email']?.toString() ?? 'admin@smartbite.com');
+      recipientAdminNames.add((adminData['profile'] as Map?)?['name']?.toString() ?? 'System Admin');
+    }
+
+    if (recipientAdminIds.isEmpty) {
+      recipientAdminIds.add('system-admin');
+      recipientAdminNames.add('System Admin');
+      recipientAdminEmails.add('admin@smartbite.com');
+    }
+
+    await _firestore.collection('feedback_messages').add({
+      'sender_id': senderId,
+      'sender_name': senderName,
+      'sender_email': senderEmail,
+      'sender_role': senderRole,
+      'recipient_admin_id': recipientAdminIds.first,
+      'recipient_admin_name': recipientAdminNames.first,
+      'recipient_admin_email': recipientAdminEmails.first,
+      'recipient_admin_ids': recipientAdminIds,
+      'recipient_admin_names': recipientAdminNames,
+      'recipient_admin_emails': recipientAdminEmails,
+      'message': message,
+      'is_read': false,
+      'is_processed': false,
+      'read_at': null,
+      'processed_at': null,
+      'processed_by_id': null,
+      'processed_by_name': null,
+      'created_at': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<List<FeedbackMessageModel>> getFeedbackMessages() async {
+    final snapshot = await _firestore
+        .collection('feedback_messages')
+        .orderBy('created_at', descending: true)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => FeedbackMessageModel.fromJson(doc.data(), doc.id))
+        .toList();
+  }
+
+  @override
+  Future<void> updateFeedbackStatus(
+    String feedbackId, {
+    bool? isRead,
+    bool? isProcessed,
+    String? processedById,
+    String? processedByName,
+  }) async {
+    final updates = <String, dynamic>{};
+    if (isRead != null) {
+      updates['is_read'] = isRead;
+      updates['read_at'] = isRead ? FieldValue.serverTimestamp() : null;
+    }
+    if (isProcessed != null) {
+      updates['is_processed'] = isProcessed;
+      updates['processed_at'] = isProcessed ? FieldValue.serverTimestamp() : null;
+      updates['processed_by_id'] = isProcessed ? processedById : null;
+      updates['processed_by_name'] = isProcessed ? processedByName : null;
+    }
+    if (updates.isNotEmpty) {
+      await _firestore.collection('feedback_messages').doc(feedbackId).update(updates);
+    }
   }
 
   @override
