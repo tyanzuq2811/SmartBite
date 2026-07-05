@@ -492,7 +492,7 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                       final prog = _getBadgeProgress(stats, badge);
                       final color = _getColor(badge.color);
                       return GestureDetector(
-                        onTap: () => _showBadgeDetail(context, badge),
+                        onTap: () => _showBadgeDetail(context, badge, stats),
                         child: _buildBadgeCardExtended(
                           context,
                           _getBadgeTitle(badge.title),
@@ -571,81 +571,170 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
     );
   }
 
-  void _showBadgeDetail(BuildContext context, BadgeModel badge) {
+  String _getBadgeDescription(BuildContext context, String badgeId) {
+    final isVi = Localizations.localeOf(context).languageCode == 'vi';
+    switch (badgeId) {
+      case 'fat_destroyer':
+        return isVi
+            ? 'Hãy tích lũy đủ 3 bữa ăn ít chất béo & calo thấp (ví dụ: ức gà phi lê, cá hồi áp chảo, salad hoặc súp lơ).'
+            : 'Accumulate 3 low-fat & low-calorie meals (e.g., chicken breast, salmon, salad, or broccoli).';
+      case 'veggie_champion':
+        return isVi
+            ? 'Hãy tích lũy đủ 3 bữa ăn chay hoặc thuần thực vật (ví dụ: đậu hũ sốt cà, salad rau củ, canh chay).'
+            : 'Accumulate 3 vegetarian or plant-based meals (e.g., tomato tofu, veggie salad, veggie soup).';
+      case 'ai_chef_king':
+        return isVi
+            ? 'Hãy sử dụng tính năng AI để tự động tạo thực đơn hoặc gợi ý công thức ăn uống đủ 5 lần.'
+            : 'Use AI meal planner or recipe generator to create dishes 5 times.';
+      case 'hydration_master':
+        return isVi
+            ? 'Hãy hoàn thành mục tiêu uống nước của bạn (ví dụ: uống đủ 2L nước mỗi ngày) trong vòng 3 ngày.'
+            : 'Complete your daily hydration goal (e.g. drink 2L water) for 3 days.';
+      case 'protein_beast':
+        return isVi
+            ? 'Hãy tích lũy đủ 3 bữa ăn giàu protein/đạm để tăng cơ (ví dụ: thịt bò, ức gà, đùi gà hoặc trứng).'
+            : 'Accumulate 3 protein-rich meals to build muscle (e.g., beef, chicken breast, chicken leg, or egg).';
+      case 'carb_cleaner':
+        return isVi
+            ? 'Hãy tích lũy đủ 3 bữa ăn chứa tinh bột tốt/tinh bột chậm (ví dụ: cơm gạo lứt, yến mạch, khoai lang).'
+            : 'Accumulate 3 meals containing good/slow carbs (e.g., brown rice, oatmeal, sweet potato).';
+      default:
+        return isVi
+            ? 'Hoàn thành các cột mốc lành mạnh đặc biệt để mở khóa.'
+            : 'Complete special healthy milestones to unlock.';
+    }
+  }
+
+  void _showBadgeDetail(BuildContext context, BadgeModel badge, UserStatsModel stats) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final color = _getColor(badge.color);
+    final prog = _getBadgeProgress(stats, badge);
+    final double progress = prog['progress']!;
+    final int current = prog['current']!.toInt();
+    final int target = prog['target']!.toInt();
+    final bool isDone = progress >= 1.0;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      useRootNavigator: true,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         backgroundColor: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
         titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
         contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Close Button Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.pop(dialogCtx),
+                ),
+              ],
+            ),
+            
+            // Badge Avatar representation
             CircleAvatar(
-              radius: 36,
-              backgroundColor: badge.isLocked ? Colors.grey[200] : color.withValues(alpha: 0.15),
+              radius: 40,
+              backgroundColor: isDone ? color.withValues(alpha: 0.15) : Colors.grey[200],
               child: Icon(
-                badge.isLocked ? Icons.lock : _getIconData(badge.icon),
-                color: badge.isLocked ? Colors.grey[600] : color,
-                size: 36,
+                isDone ? _getIconData(badge.icon) : Icons.lock_outline,
+                color: isDone ? color : Colors.grey[500],
+                size: 40,
               ),
             ),
             const SizedBox(height: 16),
+            
+            // Title
             Text(
               _getBadgeTitle(badge.title),
               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
+            
+            // Unlocked/Locked Tag
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: badge.isLocked ? Colors.grey[200] : color.withValues(alpha: 0.1),
+                color: isDone ? color.withValues(alpha: 0.1) : Colors.grey[200],
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                badge.isLocked
-                    ? (Localizations.localeOf(context).languageCode == 'vi' ? 'CHƯA MỞ KHÓA' : 'LOCKED')
-                    : (Localizations.localeOf(context).languageCode == 'vi' ? 'ĐÃ MỞ KHÓA' : 'UNLOCKED'),
+                isDone
+                    ? (Localizations.localeOf(context).languageCode == 'vi' ? 'ĐÃ ĐẠT ĐƯỢC 🎉' : 'UNLOCKED 🎉')
+                    : (Localizations.localeOf(context).languageCode == 'vi' ? 'CHƯA HOÀN THÀNH' : 'IN PROGRESS'),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: badge.isLocked ? Colors.grey[600] : color,
+                  color: isDone ? color : Colors.grey[600],
                 ),
               ),
             ),
             const SizedBox(height: 16),
+            
+            // Description of how to achieve
             Text(
-              badge.description.isNotEmpty 
-                  ? badge.description 
-                  : (Localizations.localeOf(context).languageCode == 'vi' 
-                      ? 'Hoàn thành các cột mốc dinh dưỡng lành mạnh để mở khóa.' 
-                      : 'Complete healthy nutrition milestones to unlock.'),
+              _getBadgeDescription(context, badge.id),
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13.5,
                 color: isDark ? Colors.grey[300] : Colors.grey[700],
-                height: 1.4,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Progress Bar & Tracker inside Dialog
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  Localizations.localeOf(context).languageCode == 'vi' ? 'Tiến độ thực hiện' : 'Milestone Progress',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey),
+                ),
+                Text(
+                  '$current/$target',
+                  style: TextStyle(
+                    fontSize: 12, 
+                    fontWeight: FontWeight.bold, 
+                    color: isDone ? Colors.green : theme.colorScheme.primary
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[100],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isDone ? Colors.green : (progress > 0 ? Colors.orange : Colors.grey[400]!),
+                ),
               ),
             ),
             const SizedBox(height: 24),
+            
+            // Confirm/OK Button
             SizedBox(
               width: double.infinity,
-              height: 46,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+              height: 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
                 ),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogCtx),
                 child: Text(
-                  Localizations.localeOf(context).languageCode == 'vi' ? 'Đóng' : 'Close',
-                  style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                  Localizations.localeOf(context).languageCode == 'vi' ? 'Đã hiểu' : 'Understood',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -836,7 +925,7 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                               final color = _getColor(badge.color);
                               
                               return GestureDetector(
-                                onTap: () => _showBadgeDetail(sheetContext, badge),
+                                onTap: () => _showBadgeDetail(sheetContext, badge, stats),
                                 child: _buildBadgeCardExtended(
                                   sheetContext,
                                   _getBadgeTitle(badge.title),

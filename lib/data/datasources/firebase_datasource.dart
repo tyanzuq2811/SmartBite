@@ -539,21 +539,80 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
           .doc(userId)
           .collection('badges')
           .get();
-      if (snapshot.docs.isEmpty) {
-        // Seed default badges
-        await _seedDefaultBadges(userId);
-        final newSnapshot = await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('badges')
-            .get();
-        return newSnapshot.docs
-            .map((doc) => BadgeModel.fromJson(doc.data(), doc.id))
-            .toList();
-      }
-      return snapshot.docs
+
+      final currentBadges = snapshot.docs
           .map((doc) => BadgeModel.fromJson(doc.data(), doc.id))
           .toList();
+
+      final defaultBadges = [
+        const BadgeModel(
+          id: 'fat_destroyer',
+          title: 'Kẻ hủy diệt mỡ thừa',
+          description: 'Đạt được khi ăn 3 món ít béo & ít calo (ức gà, cá hồi áp chảo, salad quinoa).',
+          icon: 'fitness_center',
+          color: 'amber',
+          isLocked: true,
+        ),
+        const BadgeModel(
+          id: 'veggie_champion',
+          title: 'Chiến thần ăn chay',
+          description: 'Đạt được khi ăn 3 món chay thuần thực vật lành mạnh (bún chả chay, đậu hũ).',
+          icon: 'eco',
+          color: 'green',
+          isLocked: true,
+        ),
+        const BadgeModel(
+          id: 'ai_chef_king',
+          title: 'Vua đầu bếp AI',
+          description: 'Đạt được khi sáng tạo thực đơn hoặc công thức bằng AI đủ 5 lần.',
+          icon: 'emoji_events',
+          color: 'amber',
+          isLocked: true,
+        ),
+        const BadgeModel(
+          id: 'hydration_master',
+          title: 'Thủy thần cấp cao',
+          description: 'Đạt được khi hoàn thành thử thách uống nước đủ 2L trong 3 ngày.',
+          icon: 'water_drop',
+          color: 'blue',
+          isLocked: true,
+        ),
+        const BadgeModel(
+          id: 'protein_beast',
+          title: 'Chiến thần cơ bắp',
+          description: 'Đạt được khi ăn 3 món ăn giàu đạm protein (thịt bò, cá hồi, trứng).',
+          icon: 'bolt',
+          color: 'red',
+          isLocked: true,
+        ),
+        const BadgeModel(
+          id: 'carb_cleaner',
+          title: 'Khắc tinh đường bột',
+          description: 'Đạt được khi ăn 3 món chứa tinh bột chậm tốt cho sức khỏe (gạo lứt, yến mạch).',
+          icon: 'grain',
+          color: 'orange',
+          isLocked: true,
+        ),
+      ];
+
+      final Map<String, BadgeModel> currentMap = {for (var b in currentBadges) b.id: b};
+      final List<BadgeModel> mergedBadges = [];
+
+      for (final defBadge in defaultBadges) {
+        if (!currentMap.containsKey(defBadge.id)) {
+          await _firestore
+              .collection('users')
+              .doc(userId)
+              .collection('badges')
+              .doc(defBadge.id)
+              .set(defBadge.toJson());
+          mergedBadges.add(defBadge);
+        } else {
+          mergedBadges.add(currentMap[defBadge.id]!);
+        }
+      }
+
+      return mergedBadges;
     } catch (e) {
       print('[FirebaseDataSource] Lỗi khi lấy badges: $e');
       return [];

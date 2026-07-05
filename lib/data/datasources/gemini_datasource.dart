@@ -151,9 +151,15 @@ Thông tin người dùng (vui lòng tuân thủ tuyệt đối):
 - Không thích: ${dislikes.join(', ')}
 - Thích: ${likes.join(', ')}
 
+Quy định đặt tên món ăn ("recipe_name") để hỗ trợ tính điểm huy hiệu:
+- Nếu là món chay: Tên món bắt buộc phải chứa một trong các từ: 'chay', 'đậu hũ', 'rau củ', 'salad', 'quinoa'.
+- Nếu là món ít béo, giảm cân: Tên món bắt buộc phải chứa một trong các từ: 'ức gà', 'cá hồi', 'salad', 'súp lơ', 'rau'.
+- Nếu là món giàu đạm, tăng cơ: Tên món bắt buộc phải chứa một trong các từ: 'bò', 'ức gà', 'cá hồi', 'trứng', 'đùi gà'.
+- Nếu là món tinh bột tốt: Tên món bắt buộc phải chứa một trong các từ: 'gạo lứt', 'yến mạch', 'khoai lang', 'quinoa'.
+
 BẠN PHẢI TRẢ VỀ DỮ LIỆU DẠNG JSON duy nhất, không thêm bất kỳ văn bản giải thích nào khác ngoài khối JSON. Cấu trúc JSON bắt buộc phải như sau:
 {
-  "recipe_name": "Tên món ăn sáng tạo",
+  "recipe_name": "Tên món ăn sáng tạo chứa từ khóa theo quy định trên",
   "prep_time": 15,
   "calories": 350,
   "difficulty": "Dễ",
@@ -185,9 +191,15 @@ Nhiệm vụ 2: Nếu ảnh có chứa thực phẩm/nguyên liệu, hãy nhận
 - Không thích: ${dislikes.join(', ')}
 - Thích: ${likes.join(', ')}
 
+Quy định đặt tên món ăn ("recipe_name") để hỗ trợ tính điểm huy hiệu:
+- Nếu là món chay: Tên món bắt buộc phải chứa một trong các từ: 'chay', 'đậu hũ', 'rau củ', 'salad', 'quinoa'.
+- Nếu là món ít béo, giảm cân: Tên món bắt buộc phải chứa một trong các từ: 'ức gà', 'cá hồi', 'salad', 'súp lơ', 'rau'.
+- Nếu là món giàu đạm, tăng cơ: Tên món bắt buộc phải chứa một trong các từ: 'bò', 'ức gà', 'cá hồi', 'trứng', 'đùi gà'.
+- Nếu là món tinh bột tốt: Tên món bắt buộc phải chứa một trong các từ: 'gạo lứt', 'yến mạch', 'khoai lang', 'quinoa'.
+
 Yêu cầu định dạng: BẠN PHẢI TRẢ VỀ DỮ LIỆU DẠNG JSON duy nhất, không thêm bất kỳ văn bản giải thích nào khác ngoài khối JSON. Cấu trúc JSON bắt buộc phải như sau:
 {
-  "recipe_name": "Tên món ăn sáng tạo",
+  "recipe_name": "Tên món ăn sáng tạo chứa từ khóa theo quy định trên",
   "prep_time": 15,
   "calories": 350,
   "difficulty": "Trung Bình",
@@ -279,34 +291,39 @@ Thông tin khách hàng:
 Yêu cầu cụ thể:
 1. Bữa sáng khoảng 25-30% calo, Bữa trưa khoảng 35-40% calo, Bữa tối khoảng 30-35% calo.
 2. Với mỗi bữa ăn, cung cấp 2 phương án thay thế (swaps) khác nhau phù hợp VÀ danh sách các bước nấu ăn chi tiết (instructions) gồm các bước cụ thể, ngắn gọn bằng tiếng Việt (hoặc tiếng Anh nếu diet/ngôn ngữ phù hợp).
-3. Tạo danh sách nguyên liệu đi chợ (grocery_list) tổng hợp phân loại theo các nhóm (ví dụ: "Đạm & Thịt", "Rau củ", "Khác") với số lượng (qty) cụ thể.
-4. Cung cấp URL ảnh minh hoạ chất lượng cao và hoạt động tốt từ Unsplash (unsplash.com) phù hợp với món ăn (tránh link chung chung, hãy dùng url ảnh cụ thể như: https://images.unsplash.com/photo-1525351484163-7529414344d8?w=200).
+3. Quy định đặt tên món ăn ("meals[].name") bắt buộc phải chứa từ khóa đặc trưng sau tùy theo tính chất để hệ thống của ứng dụng nhận diện được:
+   - Nếu là món chay: Tên món bắt buộc phải chứa một trong các từ: 'chay', 'đậu hũ', 'rau củ', 'salad', 'quinoa'.
+   - Nếu là món ít béo, giảm cân: Tên món bắt buộc phải chứa một trong các từ: 'ức gà', 'cá hồi', 'salad', 'súp lơ', 'rau'.
+   - Nếu là món giàu đạm, tăng cơ: Tên món bắt buộc phải chứa một trong các từ: 'bò', 'ức gà', 'cá hồi', 'trứng', 'đùi gà'.
+   - Nếu là món tinh bột tốt: Tên món bắt buộc phải chứa một trong các từ: 'gạo lứt', 'yến mạch', 'khoai lang', 'quinoa'.
+4. Tạo danh sách nguyên liệu đi chợ (grocery_list) tổng hợp phân loại theo các nhóm (ví dụ: "Đạm & Thịt", "Rau củ", "Khác") với số lượng (qty) cụ thể.
+5. Cung cấp URL ảnh minh hoạ chất lượng cao và hoạt động tốt từ Unsplash (unsplash.com) phù hợp với món ăn (tránh link chung chung, hãy dùng url ảnh cụ thể như: https://images.unsplash.com/photo-1525351484163-7529414344d8?w=200).
 
 BẠN BẮT BUỘC TRẢ VỀ DỮ LIỆU DẠNG JSON DUY NHẤT, KHÔNG THÊM BẤT KỲ VĂN BẢN GIẢI THÍCH NÀO KHÁC NGOÀI KHỐI JSON. Cấu trúc JSON bắt buộc phải như sau:
 {
   "meals": [
     {
       "type": "Bữa sáng",
-      "name": "Tên món ăn sáng cụ thể",
+      "name": "Tên món ăn sáng chứa từ khóa theo quy định ở mục 3",
       "calories": 350,
       "image_url": "URL ảnh cụ thể từ Unsplash",
-      "swaps": ["Món thay thế 1", "Món thay thế 2"],
+      "swaps": ["Món thay thế 1 chứa từ khóa", "Món thay thế 2 chứa từ khóa"],
       "instructions": ["Bước 1: Chuẩn bị yến mạch...", "Bước 2: Cho sữa vào nấu chín..."]
     },
     {
       "type": "Bữa trưa",
-      "name": "Tên món ăn trưa cụ thể",
+      "name": "Tên món ăn trưa chứa từ khóa theo quy định ở mục 3",
       "calories": 450,
       "image_url": "URL ảnh cụ thể từ Unsplash",
-      "swaps": ["Món thay thế 1", "Món thay thế 2"],
+      "swaps": ["Món thay thế 1 chứa từ khóa", "Món thay thế 2 chứa từ khóa"],
       "instructions": ["Bước 1: Sơ chế thịt bò...", "Bước 2: Xào nhanh tay..."]
     },
     {
       "type": "Bữa tối",
-      "name": "Tên món ăn tối cụ thể",
+      "name": "Tên món ăn tối chứa từ khóa theo quy định ở mục 3",
       "calories": 500,
       "image_url": "URL ảnh cụ thể từ Unsplash",
-      "swaps": ["Món thay thế 1", "Món thay thế 2"],
+      "swaps": ["Món thay thế 1 chứa từ khóa", "Món thay thế 2 chứa từ khóa"],
       "instructions": ["Bước 1: Ướp cá hồi...", "Bước 2: Áp chảo cá hồi..."]
     }
   ],
