@@ -200,8 +200,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message), backgroundColor: Colors.red),
             );
-          } else if (state is AuthenticatedUser || state is AuthenticatedAdmin) {
-            // Success registration -> go home
+          } else if (state is AuthenticatedAdmin) {
+            Navigator.pushNamedAndRemoveUntil(context, '/admin', (route) => false);
+          } else if (state is AuthenticatedUser) {
             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
           }
         },
