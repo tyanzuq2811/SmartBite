@@ -455,12 +455,15 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  Localizations.localeOf(context).languageCode == 'vi' ? 'Xem tất cả' : 'See all',
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                GestureDetector(
+                  onTap: _showAllBadgesBottomSheet,
+                  child: Text(
+                    Localizations.localeOf(context).languageCode == 'vi' ? 'Xem tất cả' : 'See all',
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -474,29 +477,33 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                           style: const TextStyle(color: Colors.grey)),
                     ),
                   )
-                : GridView.count(
+                : GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.25,
-                    children: _badges.map((badge) {
+                    itemCount: _badges.take(4).length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1.15,
+                    ),
+                    itemBuilder: (ctx, idx) {
+                      final badge = _badges[idx];
+                      final prog = _getBadgeProgress(stats, badge);
                       final color = _getColor(badge.color);
                       return GestureDetector(
                         onTap: () => _showBadgeDetail(context, badge),
-                        child: _buildBadgeCard(
+                        child: _buildBadgeCardExtended(
                           context,
                           _getBadgeTitle(badge.title),
-                          badge.isLocked 
-                              ? (Localizations.localeOf(context).languageCode == 'vi' ? 'Chưa mở' : 'Locked') 
-                              : (Localizations.localeOf(context).languageCode == 'vi' ? 'Đã mở khóa' : 'Unlocked'),
+                          badge.isLocked,
                           _getIconData(badge.icon),
-                          badge.isLocked ? Colors.grey : color,
-                          isLocked: badge.isLocked,
+                          color,
+                          progress: prog['progress']!,
+                          progressText: '${prog['current']!.toInt()}/${prog['target']!.toInt()}',
                         ),
                       );
-                    }).toList(),
+                    },
                   ),
             const SizedBox(height: 28),
 
@@ -700,79 +707,6 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
     );
   }
 
-  Widget _buildBadgeCard(
-    BuildContext context,
-    String title,
-    String desc,
-    IconData icon,
-    Color color, {
-    required bool isLocked,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Opacity(
-      opacity: isLocked ? 0.5 : 1.0,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isLocked
-                ? theme.colorScheme.outlineVariant.withValues(alpha: 0.2)
-                : color.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: isLocked
-                  ? Colors.grey[200]
-                  : color.withValues(alpha: 0.15),
-              child: Icon(
-                isLocked ? Icons.lock_outline : icon,
-                color: isLocked ? Colors.grey[600] : color,
-                size: 20,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: isLocked ? Colors.grey[600] : null,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isLocked
-                    ? Colors.grey[200]
-                    : color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                desc,
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: isLocked ? Colors.grey[600] : color,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildChallengeCard(
     BuildContext context, {
     required String title,
@@ -835,6 +769,345 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Map<String, double> _getBadgeProgress(UserStatsModel stats, BadgeModel badge) {
+    int current = 0;
+    int target = 3;
+    switch (badge.id) {
+      case 'fat_destroyer':
+        current = stats.fatDestroyerCount;
+        target = 3;
+        break;
+      case 'veggie_champion':
+        current = stats.veggieChampionCount;
+        target = 3;
+        break;
+      case 'ai_chef_king':
+        current = stats.aiRecipesCreatedCount;
+        target = 5;
+        break;
+      case 'protein_beast':
+        current = stats.proteinBeastCount;
+        target = 3;
+        break;
+      case 'carb_cleaner':
+        current = stats.carbCleanerCount;
+        target = 3;
+        break;
+      case 'hydration_master':
+        current = 0;
+        target = 3;
+        final hydrationChallenge = _challenges.firstWhere(
+          (c) => c.id == 'hydration_master' || c.title.contains('nước') || c.title.contains('Hydrated'),
+          orElse: () => const ChallengeModel(id: '', title: '', description: '', targetDays: 3, completedDays: 0, isCompleted: false, weekOf: ''),
+        );
+        current = hydrationChallenge.completedDays;
+        target = hydrationChallenge.targetDays;
+        break;
+      default:
+        current = 0;
+        target = 3;
+    }
+    current = current.clamp(0, target);
+    return {
+      'current': current.toDouble(),
+      'target': target.toDouble(),
+      'progress': target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0,
+    };
+  }
+
+  void _showAllBadgesBottomSheet() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final stats = _stats ?? UserStatsModel.initial();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        String activeFilter = 'all';
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setSheetState) {
+            final filteredBadges = _badges.where((badge) {
+              final prog = _getBadgeProgress(stats, badge);
+              final isUnlocked = !badge.isLocked;
+              final isInProgress = badge.isLocked && prog['current']! > 0;
+              final isNotStarted = badge.isLocked && prog['current']! == 0;
+
+              if (activeFilter == 'unlocked') return isUnlocked;
+              if (activeFilter == 'in_progress') return isInProgress;
+              if (activeFilter == 'locked') return isNotStarted;
+              return true;
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(sheetContext).size.height * 0.85,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[900] : Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+              ),
+              padding: const EdgeInsets.only(top: 8, bottom: 24, left: 20, right: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        Localizations.localeOf(sheetContext).languageCode == 'vi'
+                            ? 'Hệ thống Huy hiệu'
+                            : 'All Badges System',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(sheetContext),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip(
+                          label: Localizations.localeOf(sheetContext).languageCode == 'vi' ? 'Tất cả' : 'All',
+                          isActive: activeFilter == 'all',
+                          count: _badges.length,
+                          onTap: () => setSheetState(() => activeFilter = 'all'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          label: Localizations.localeOf(sheetContext).languageCode == 'vi' ? 'Đã đạt' : 'Unlocked',
+                          isActive: activeFilter == 'unlocked',
+                          count: _badges.where((b) => !b.isLocked).length,
+                          onTap: () => setSheetState(() => activeFilter == 'unlocked'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          label: Localizations.localeOf(sheetContext).languageCode == 'vi' ? 'Đang làm' : 'In Progress',
+                          isActive: activeFilter == 'in_progress',
+                          count: _badges.where((b) {
+                            final prog = _getBadgeProgress(stats, b);
+                            return b.isLocked && prog['current']! > 0;
+                          }).length,
+                          onTap: () => setSheetState(() => activeFilter == 'in_progress'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          label: Localizations.localeOf(sheetContext).languageCode == 'vi' ? 'Chưa đạt' : 'Locked',
+                          isActive: activeFilter == 'locked',
+                          count: _badges.where((b) {
+                            final prog = _getBadgeProgress(stats, b);
+                            return b.isLocked && prog['current']! == 0;
+                          }).length,
+                          onTap: () => setSheetState(() => activeFilter == 'locked'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Expanded(
+                    child: filteredBadges.isEmpty
+                        ? Center(
+                            child: Text(
+                              Localizations.localeOf(sheetContext).languageCode == 'vi'
+                                  ? 'Không có huy hiệu nào khớp bộ lọc.'
+                                  : 'No badges match the filter.',
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : GridView.builder(
+                            itemCount: filteredBadges.length,
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 1.15,
+                            ),
+                            itemBuilder: (ctx, idx) {
+                              final badge = filteredBadges[idx];
+                              final prog = _getBadgeProgress(stats, badge);
+                              final color = _getColor(badge.color);
+                              
+                              return GestureDetector(
+                                onTap: () => _showBadgeDetail(sheetContext, badge),
+                                child: _buildBadgeCardExtended(
+                                  sheetContext,
+                                  _getBadgeTitle(badge.title),
+                                  badge.isLocked,
+                                  _getIconData(badge.icon),
+                                  color,
+                                  progress: prog['progress']!,
+                                  progressText: '${prog['current']!.toInt()}/${prog['target']!.toInt()}',
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool isActive,
+    required int count,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    return FilterChip(
+      selected: isActive,
+      label: Text('$label ($count)'),
+      labelStyle: TextStyle(
+        color: isActive ? Colors.white : theme.colorScheme.onSurface,
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+      ),
+      selectedColor: theme.colorScheme.primary,
+      backgroundColor: theme.brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[200],
+      onSelected: (_) => onTap(),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      showCheckmark: false,
+    );
+  }
+
+  Widget _buildBadgeCardExtended(
+    BuildContext context,
+    String title,
+    bool isLocked,
+    IconData icon,
+    Color color, {
+    required double progress,
+    required String progressText,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final hasStarted = progress > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isLocked
+              ? (hasStarted
+                  ? Colors.orange.withValues(alpha: 0.4)
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.2))
+              : color.withValues(alpha: 0.4),
+          width: isLocked ? 1.0 : 1.5,
+        ),
+        boxShadow: isLocked
+            ? null
+            : [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                )
+              ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: isLocked
+                    ? (hasStarted ? Colors.orange.withValues(alpha: 0.1) : Colors.grey[200])
+                    : color.withValues(alpha: 0.15),
+                child: Icon(
+                  isLocked ? (hasStarted ? icon : Icons.lock_outline) : icon,
+                  color: isLocked ? (hasStarted ? Colors.orange : Colors.grey[600]) : color,
+                  size: 16,
+                ),
+              ),
+              if (isLocked)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: hasStarted ? Colors.orange.withValues(alpha: 0.15) : Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    progressText,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: hasStarted ? Colors.orange[800] : Colors.grey[600],
+                    ),
+                  ),
+                )
+              else
+                Icon(Icons.check_circle, color: color, size: 16),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: isLocked && !hasStarted ? Colors.grey[600] : null,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (isLocked)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 4,
+                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[100],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  hasStarted ? Colors.orange : Colors.grey[400]!,
+                ),
+              ),
+            )
+          else
+            Text(
+              Localizations.localeOf(context).languageCode == 'vi' ? 'Đã đạt được 🎉' : 'Unlocked 🎉',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
         ],
       ),
     );
