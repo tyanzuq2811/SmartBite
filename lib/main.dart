@@ -113,6 +113,20 @@ class SmartBiteApp extends StatelessWidget {
                 Locale('en', ''),
               ],
 
+              builder: (context, child) {
+                return BlocListener<AuthBloc, AuthState>(
+                  listener: (context, authState) {
+                    if (authState is AuthenticatedUser) {
+                      context.read<CalorieTrackerCubit>().loadFirebaseData(authState.user.userId);
+                    } else if (authState is AuthenticatedAdmin) {
+                      context.read<CalorieTrackerCubit>().loadFirebaseData(authState.user.userId);
+                    } else if (authState is Unauthenticated) {
+                      context.read<CalorieTrackerCubit>().reset();
+                    }
+                  },
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
               // Route definitions
               initialRoute: '/login',
               routes: {

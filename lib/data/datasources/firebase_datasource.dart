@@ -30,6 +30,14 @@ abstract class FirebaseDataSource {
   Future<void> deleteMealPlan(String userId, String date);
   Future<void> updateGroceryChecked(
       String userId, String date, String category, int index, bool checked);
+  Future<void> saveDailyCalorieRecord(
+    String userId,
+    String date,
+    int consumedCalories,
+    Map<String, bool> eatenRecipes,
+    List<MealItemModel> eatenMeals,
+  );
+  Future<Map<String, dynamic>> getDailyCalorieRecords(String userId);
 
   // Gamification functions
   Future<UserStatsModel> getUserStats(String userId);
@@ -247,6 +255,79 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
         .collection('meal_plans')
         .doc(date)
         .delete();
+  }
+
+  @override
+  Future<void> saveDailyCalorieRecord(
+    String userId,
+    String date,
+    int consumedCalories,
+    Map<String, bool> eatenRecipes,
+    List<MealItemModel> eatenMeals,
+  ) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('daily_calories')
+          .doc(date)
+          .set({
+        'consumed_calories': consumedCalories,
+        'eaten_recipes': eatenRecipes,
+        'eaten_meals': eatenMeals.map((m) => m.toJson()).toList(),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('[FirebaseDataSource] Lỗi khi lưu daily calorie record: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getDailyCalorieRecords(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('daily_calories')
+          .get();
+
+      final Map<String, int> consumedMap = {};
+      final Map<String, Map<String, bool>> eatenRecipesMap = {};
+      final Map<String, List<MealItemModel>> eatenMealsMap = {};
+
+      for (final doc in snapshot.docs) {
+        final date = doc.id;
+        final data = doc.data();
+        consumedMap[date] = (data['consumed_calories'] as num?)?.toInt() ?? 0;
+
+        final Map<String, bool> innerRecipes = {};
+        if (data['eaten_recipes'] is Map) {
+          (data['eaten_recipes'] as Map).forEach((k, v) {
+            innerRecipes[k.toString()] = v as bool? ?? false;
+          });
+        }
+        eatenRecipesMap[date] = innerRecipes;
+
+        if (data['eaten_meals'] is List) {
+          eatenMealsMap[date] = (data['eaten_meals'] as List)
+              .map((e) => MealItemModel.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+      }
+
+      return {
+        'consumed': consumedMap,
+        'recipes': eatenRecipesMap,
+        'meals': eatenMealsMap,
+      };
+    } catch (e) {
+      print('[FirebaseDataSource] Lỗi khi lấy daily calorie records: $e');
+      return {
+        'consumed': <String, int>{},
+        'recipes': <String, Map<String, bool>>{},
+        'meals': <String, List<MealItemModel>>{},
+      };
+    }
   }
 
   @override

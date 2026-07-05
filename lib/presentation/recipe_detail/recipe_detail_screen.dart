@@ -414,16 +414,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           instructions: widget.recipe.instructions,
                         );
 
-                        context.read<CalorieTrackerCubit>().toggleEaten(
-                          mealItem,
-                          todayStr,
-                        );
-                        _updateTodayMealPlan(!isEaten);
-
                         final authState = context.read<AuthBloc>().state;
                         String? userId;
                         if (authState is AuthenticatedUser) userId = authState.user.userId;
                         if (authState is AuthenticatedAdmin) userId = authState.user.userId;
+
+                        context.read<CalorieTrackerCubit>().toggleEaten(
+                          mealItem,
+                          userId ?? "anonymous",
+                          todayStr,
+                        );
+                        _updateTodayMealPlan(!isEaten);
+
                         if (userId != null) {
                            final ds = getIt<FirebaseDataSource>();
                            final trackerState = context.read<CalorieTrackerCubit>().state;

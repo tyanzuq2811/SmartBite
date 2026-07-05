@@ -302,7 +302,7 @@ class _PlanScreenState extends State<PlanScreen> {
     );
     if (!confirm || !mounted) return;
 
-    context.read<CalorieTrackerCubit>().toggleEaten(meal, dateStr);
+    context.read<CalorieTrackerCubit>().toggleEaten(meal, _userId!, dateStr);
 
     // Get updated states
     final trackerState = context.read<CalorieTrackerCubit>().state;

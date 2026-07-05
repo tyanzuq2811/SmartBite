@@ -30,6 +30,13 @@ class HomeScreenState extends State<HomeScreen> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
+  String _getUserId(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthenticatedUser) return authState.user.userId;
+    if (authState is AuthenticatedAdmin) return authState.user.userId;
+    return 'anonymous';
+  }
+
   static const Recipe smoothieRecipe = Recipe(
     recipeName: 'Smoothie Việt Quất',
     prepTime: 10,
@@ -747,7 +754,7 @@ class HomeScreenState extends State<HomeScreen> {
                             swaps: const [],
                             instructions: smoothieRecipe.instructions,
                           );
-                          context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                          context.read<CalorieTrackerCubit>().toggleEaten(mealItem, _getUserId(context), dateStr);
                         }
                       },
                       recipe: smoothieRecipe,
@@ -779,7 +786,7 @@ class HomeScreenState extends State<HomeScreen> {
                             swaps: const [],
                             instructions: codRecipe.instructions,
                           );
-                          context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                          context.read<CalorieTrackerCubit>().toggleEaten(mealItem, _getUserId(context), dateStr);
                         }
                       },
                       recipe: codRecipe,
@@ -820,7 +827,7 @@ class HomeScreenState extends State<HomeScreen> {
                                   swaps: const [],
                                   instructions: recipe.instructions,
                                 );
-                                context.read<CalorieTrackerCubit>().toggleEaten(mealItem, dateStr);
+                                context.read<CalorieTrackerCubit>().toggleEaten(mealItem, _getUserId(context), dateStr);
                               }
                             },
                             recipe: recipe,
@@ -1158,7 +1165,7 @@ class HomeScreenState extends State<HomeScreen> {
                                         : 'Are you sure you want to remove "${meal.name}" from eaten list?',
                                   );
                                   if (confirm && context.mounted) {
-                                    context.read<CalorieTrackerCubit>().toggleEaten(meal, dateStr);
+                                    context.read<CalorieTrackerCubit>().toggleEaten(meal, _getUserId(context), dateStr);
                                     Navigator.pop(sheetContext);
                                   }
                                 },

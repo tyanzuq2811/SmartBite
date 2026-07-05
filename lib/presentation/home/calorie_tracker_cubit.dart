@@ -1,6 +1,8 @@
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:equatable/equatable.dart';
+import '../../core/di/injection.dart';
+import '../../data/datasources/firebase_datasource.dart';
 import '../../data/models/meal_plan_model.dart';
 
 class CalorieTrackerState extends Equatable {
@@ -77,7 +79,24 @@ class CalorieTrackerState extends Equatable {
 class CalorieTrackerCubit extends HydratedCubit<CalorieTrackerState> {
   CalorieTrackerCubit() : super(CalorieTrackerState.initial());
 
-  void toggleEaten(MealItemModel meal, [String? date]) {
+  Future<void> loadFirebaseData(String userId) async {
+    try {
+      final ds = getIt<FirebaseDataSource>();
+      final records = await ds.getDailyCalorieRecords(userId);
+      final stats = await ds.getUserStats(userId);
+
+      emit(CalorieTrackerState(
+        consumedCaloriesByDate: Map<String, int>.from(records['consumed']),
+        targetCalories: stats.targetCalories > 0 ? stats.targetCalories : state.targetCalories,
+        eatenRecipesByDate: Map<String, Map<String, bool>>.from(records['recipes']),
+        eatenMealsByDate: Map<String, List<MealItemModel>>.from(records['meals']),
+      ));
+    } catch (e) {
+      print('[CalorieTrackerCubit] Lỗi khi load dữ liệu Firebase: $e');
+    }
+  }
+
+  void toggleEaten(MealItemModel meal, String userId, [String? date]) {
     final now = DateTime.now();
     final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final actualDate = date ?? todayStr;
@@ -120,10 +139,26 @@ class CalorieTrackerCubit extends HydratedCubit<CalorieTrackerState> {
       eatenRecipesByDate: updatedEatenMap,
       eatenMealsByDate: updatedMealsMap,
     ));
+
+    // Đồng bộ lên Firestore
+    final ds = getIt<FirebaseDataSource>();
+    ds.saveDailyCalorieRecord(
+      userId,
+      actualDate,
+      nextConsumed,
+      eatenForDate,
+      eatenMealsForDate,
+    );
   }
 
-  void updateTargetCalories(int target) {
+  void updateTargetCalories(int target, String userId) {
     emit(state.copyWith(targetCalories: target));
+    final ds = getIt<FirebaseDataSource>();
+    ds.getUserStats(userId).then((stats) {
+      ds.updateUserStats(userId, stats.copyWith(targetCalories: target));
+    }).catchError((e) {
+      print('[CalorieTrackerCubit] Lỗi khi cập nhật target calories trên Firestore: $e');
+    });
   }
 
   void reset() {
