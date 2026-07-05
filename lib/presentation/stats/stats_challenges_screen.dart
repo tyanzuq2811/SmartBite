@@ -145,8 +145,8 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                 iconColor: Colors.orange,
                 title: Localizations.localeOf(context).languageCode == 'vi' ? 'Chuỗi ăn sạch (Streak) 🔥' : 'Clean Eating Streak 🔥',
                 desc: Localizations.localeOf(context).languageCode == 'vi' 
-                    ? 'Được ghi nhận khi bạn nạp lượng calo đạt từ 80% - 105% lượng calo mục tiêu trong ngày. Quá 48h không ghi nhận hoạt động ăn uống, chuỗi Streak sẽ tự động reset về 0.'
-                    : 'Recorded when you consume 80% - 105% of your target calories for the day. Streak resets to 0 if there is no activity for 48 hours.',
+                    ? 'Được ghi nhận khi bạn nạp lượng calo đạt từ 80% - 105% lượng calo mục tiêu trong ngày. Quá 24h không ghi nhận hoạt động ăn uống đạt mục tiêu calo, chuỗi Streak sẽ tự động reset về 0.'
+                    : 'Recorded when you consume 80% - 105% of your target calories for the day. Streak resets to 0 if there is no activity for 24 hours.',
               ),
               const SizedBox(height: 16),
               _buildGuideItem(
@@ -310,8 +310,8 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                   Text(
                     stats.streak > 0
                         ? (Localizations.localeOf(context).languageCode == 'vi' 
-                            ? '🔥 Bạn đã duy trì chuỗi ${stats.streak} ngày ăn sạch! Hãy tiếp tục nạp calo đạt mục tiêu hôm nay để bảo vệ chuỗi Streak, tránh bị reset sau 48h.' 
-                            : '🔥 You have kept a ${stats.streak}-day streak! Eat within 80%-105% of your target today to protect your streak from resetting after 48h.')
+                            ? '🔥 Bạn đã duy trì chuỗi ${stats.streak} ngày ăn sạch! Hãy tiếp tục nạp calo đạt mục tiêu hôm nay để bảo vệ chuỗi Streak, tránh bị reset sau 24h.' 
+                            : '🔥 You have kept a ${stats.streak}-day streak! Eat within 80%-105% of your target today to protect your streak from resetting after 24h.')
                         : (Localizations.localeOf(context).languageCode == 'vi' 
                             ? 'Hãy đạt lượng calo từ 80% - 105% mục tiêu ngày hôm nay để kích hoạt chuỗi Streak ăn sạch đầu tiên của bạn!' 
                             : 'Reach 80% - 105% of your target calories today to start your first clean eating streak!'),
@@ -505,36 +505,6 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
                       );
                     },
                   ),
-            const SizedBox(height: 28),
-
-            // --- Thách thức tuần này ---
-            Text(
-              Localizations.localeOf(context).languageCode == 'vi' ? 'Thách thức tuần này' : 'Weekly Challenges',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _challenges.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Chưa có thách thức nào cho tuần này.' : 'No challenges for this week.',
-                          style: const TextStyle(color: Colors.grey)),
-                    ),
-                  )
-                : Column(
-                    children: _challenges.map((challenge) {
-                      return _buildChallengeCard(
-                        context,
-                        title: _getChallengeTitle(challenge.title),
-                        desc: _getChallengeDesc(challenge.description),
-                        progress: challenge.progress,
-                        progressText: challenge.progressText,
-                      );
-                    }).toList(),
-                  ),
             const SizedBox(height: 24),
           ],
         ),
@@ -569,28 +539,6 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
       'Thủy thần cấp cao': 'Hydration Master',
       'Chiến thần cơ bắp': 'Protein Beast',
       'Khắc tinh đường bột': 'Carb Cleaner',
-    };
-    return map[key] ?? key;
-  }
-
-  String _getChallengeTitle(String key) {
-    if (Localizations.localeOf(context).languageCode == 'vi') return key;
-    final map = {
-      'Ăn sạch mỗi ngày': 'Clean Eat Daily',
-      'Đầu bếp tương lai': 'Future Chef',
-      'Uống nước đầy đủ': 'Stay Hydrated',
-      'Kỷ luật thép': 'Iron Discipline',
-    };
-    return map[key] ?? key;
-  }
-
-  String _getChallengeDesc(String key) {
-    if (Localizations.localeOf(context).languageCode == 'vi') return key;
-    final map = {
-      'Đạt calo mục tiêu 5 ngày liên tiếp': 'Reach target calories for 5 days in a row',
-      'Sáng tạo công thức AI đủ 3 lần': 'Create AI recipes 3 times',
-      'Ghi nhận uống nước đủ 2L trong 3 ngày': 'Record drinking 2L of water for 3 days',
-      'Hoàn thành tất cả bữa ăn trong ngày': 'Complete all meals of the day',
     };
     return map[key] ?? key;
   }
@@ -703,73 +651,6 @@ class _StatsChallengesScreenState extends State<StatsChallengesScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildChallengeCard(
-    BuildContext context, {
-    required String title,
-    required String desc,
-    required double progress,
-    required String progressText,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final isDone = progress >= 1.0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color:
-              theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              Text(
-                progressText,
-                style: TextStyle(
-                  color: isDone ? Colors.green : theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            desc,
-            style: TextStyle(
-                color: Colors.grey[600], fontSize: 12, height: 1.3),
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 6,
-              backgroundColor:
-                  isDark ? Colors.grey[800] : Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isDone ? Colors.green : theme.colorScheme.primary,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

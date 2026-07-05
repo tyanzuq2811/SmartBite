@@ -138,6 +138,8 @@ class AppLocalizations {
       'waterRemiSub': 'Remind me to drink water every 2 hours to stay hydrated',
       'aiChef': 'AI Chef Recommendations',
       'aiChefSub': 'Recommend new recipes based on my preferences',
+      'streakRemi': 'Streak Reminder',
+      'streakRemiSub': 'Alert to keep your clean eating streak when the day is ending',
       'notiTip': 'Tip: Enabling AI Notifications helps you receive personalized menus exactly at your mealtimes.',
       'notiUpdated': 'Notification settings updated',
 
@@ -311,6 +313,8 @@ class AppLocalizations {
       'waterRemiSub': 'Nhắc uống nước đều đặn mỗi 2 tiếng để giữ nước',
       'aiChef': 'Gợi ý từ đầu bếp AI',
       'aiChefSub': 'Khuyến nghị công thức món ăn mới dựa trên sở thích',
+      'streakRemi': 'Nhắc nhở giữ Streak',
+      'streakRemiSub': 'Cảnh báo duy trì chuỗi ăn sạch khi sắp hết ngày (chu kỳ 24h)',
       'notiTip': 'Mẹo: Bật thông báo AI sẽ giúp bạn nhận được thực đơn cá nhân hóa chính xác vào đúng khung giờ ăn của mình.',
       'notiUpdated': 'Đã cập nhật cài đặt thông báo',
 

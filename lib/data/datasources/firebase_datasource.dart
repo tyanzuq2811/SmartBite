@@ -405,14 +405,23 @@ class FirebaseDataSourceImpl implements FirebaseDataSource {
 
       final now = DateTime.now();
 
-      // Kiểm tra xem có cần reset streak không (nếu ngày cuối active trước hôm qua)
+      // Kiểm tra xem có cần reset streak không (chu kỳ 24 tiếng - hàng ngày)
       if (lastActive != null) {
-        final diffDays = now.difference(lastActive).inDays;
-        if (diffDays >= 2) {
-          currentStreak = 0;
-          currentStreakDays.forEach((key, value) {
-            currentStreakDays[key] = false;
-          });
+        final lastActiveDateOnly = DateTime(lastActive.year, lastActive.month, lastActive.day);
+        final todayDateOnly = DateTime(now.year, now.month, now.day);
+        final diffDays = todayDateOnly.difference(lastActiveDateOnly).inDays;
+
+        if (diffDays >= 1) {
+          final yesterdayLabel = _getDayLabel(now.subtract(const Duration(days: 1)));
+          final wasYesterdayReached = currentStreakDays[yesterdayLabel] ?? false;
+
+          // Nếu bỏ lỡ từ 2 ngày trở lên hoặc hôm qua không đạt mục tiêu calo, reset streak về 0
+          if (diffDays >= 2 || !wasYesterdayReached) {
+            currentStreak = 0;
+            currentStreakDays.forEach((key, value) {
+              currentStreakDays[key] = false;
+            });
+          }
         }
       }
 

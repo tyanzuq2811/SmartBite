@@ -15,6 +15,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   bool _mealEvening = true;
   bool _waterReminder = true;
   bool _aiRecommendation = true;
+  bool _streakReminder = true;
   bool _isLoading = true;
 
   @override
@@ -32,6 +33,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         _mealEvening = prefs.getBool('notification_meal_evening') ?? true;
         _waterReminder = prefs.getBool('notification_water') ?? true;
         _aiRecommendation = prefs.getBool('notification_ai') ?? true;
+        _streakReminder = prefs.getBool('notification_streak') ?? true;
         _isLoading = false;
       });
     }
@@ -137,6 +139,18 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     onChanged: (val) {
                       setState(() => _aiRecommendation = val);
                       _saveSetting('notification_ai', val);
+                    },
+                    theme: theme,
+                  ),
+                  const Divider(height: 1),
+                  _buildSwitchTile(
+                    title: context.translate('streakRemi'),
+                    subtitle: context.translate('streakRemiSub'),
+                    value: _streakReminder,
+                    icon: Icons.local_fire_department_outlined,
+                    onChanged: (val) {
+                      setState(() => _streakReminder = val);
+                      _saveSetting('notification_streak', val);
                     },
                     theme: theme,
                   ),
