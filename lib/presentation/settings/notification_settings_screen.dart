@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/di/injection.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/services/email_service.dart';
+import '../../data/datasources/firebase_datasource.dart';
+import '../auth/auth_bloc.dart';
+import '../home/calorie_tracker_cubit.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -17,6 +23,93 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   bool _aiRecommendation = true;
   bool _streakReminder = true;
   bool _isLoading = true;
+  bool _isSendingEmail = false;
+
+  Future<void> _sendTestEmail() async {
+    final authState = context.read<AuthBloc>().state;
+    String? userEmail;
+    String? userId;
+    if (authState is AuthenticatedUser) {
+      userEmail = authState.user.email;
+      userId = authState.user.userId;
+    } else if (authState is AuthenticatedAdmin) {
+      userEmail = authState.user.email;
+      userId = authState.user.userId;
+    }
+
+    if (userEmail == null || userEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(Localizations.localeOf(context).languageCode == 'vi'
+              ? 'Không tìm thấy email của bạn để gửi thử nghiệm!'
+              : 'User email not found for testing!'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSendingEmail = true);
+
+    try {
+      int streak = 0;
+      if (userId != null) {
+        final stats = await getIt<FirebaseDataSource>().getUserStats(userId);
+        streak = stats.streak;
+      }
+
+      final now = DateTime.now();
+      final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final trackerState = context.read<CalorieTrackerCubit>().state;
+      final consumed = trackerState.getConsumedCaloriesForDate(todayStr);
+      final target = trackerState.targetCalories;
+
+      final remaining = (target - consumed).clamp(0, 99999);
+      final remainingText = remaining > 0
+          ? (Localizations.localeOf(context).languageCode == 'vi'
+              ? 'Bạn cần nạp thêm $remaining kcal nữa để đạt mục tiêu của ngày.'
+              : 'You need to consume $remaining more kcal to reach today\'s target.')
+          : (Localizations.localeOf(context).languageCode == 'vi'
+              ? 'Chúc mừng! Bạn đã hoàn thành mục tiêu calo hôm nay.'
+              : 'Congratulations! You have met today\'s calorie goal.');
+
+      await EmailService.sendStreakReminder(
+        recipientEmail: userEmail,
+        currentStreak: streak,
+        remainingCalText: remainingText,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(Localizations.localeOf(context).languageCode == 'vi'
+                    ? 'Đã gửi email thử nghiệm thành công tới $userEmail!'
+                    : 'Test email successfully sent to $userEmail!'),
+              ],
+            ),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSendingEmail = false);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -154,6 +247,35 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     },
                     theme: theme,
                   ),
+                  if (_streakReminder) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Colors.transparent,
+                        child: Icon(Icons.mail_outline, color: Colors.teal, size: 20),
+                      ),
+                      title: Text(
+                        Localizations.localeOf(context).languageCode == 'vi'
+                            ? 'Kiểm tra gửi email Streak'
+                            : 'Test Streak Email',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.teal),
+                      ),
+                      subtitle: Text(
+                        Localizations.localeOf(context).languageCode == 'vi'
+                            ? 'Gửi một email nhắc nhở Streak mẫu đến email của bạn'
+                            : 'Send a sample Streak reminder email to your address',
+                        style: const TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
+                      trailing: _isSendingEmail
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal),
+                            )
+                          : const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.teal),
+                      onTap: _isSendingEmail ? null : _sendTestEmail,
+                    ),
+                  ],
                 ], theme, isDark),
                 const SizedBox(height: 32),
                 

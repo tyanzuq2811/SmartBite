@@ -11,6 +11,10 @@ import '../main_shell.dart';
 import '../stats/stats_challenges_screen.dart';
 import 'calorie_tracker_cubit.dart';
 import 'sync_cubit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/di/injection.dart';
+import '../../core/services/email_service.dart';
+import '../../data/datasources/firebase_datasource.dart';
 import '../../data/models/meal_plan_model.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -99,6 +103,57 @@ class HomeScreenState extends State<HomeScreen> {
           _isLoadingSaved = false;
         });
       }
+    }
+    _checkAndSendStreakReminder();
+  }
+
+  Future<void> _checkAndSendStreakReminder() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool('notification_streak') ?? true;
+      if (!enabled) return;
+
+      final now = DateTime.now();
+      if (now.hour < 19) return;
+
+      final todayStr = _getDateStr(now);
+      final lastSentDate = prefs.getString('last_streak_email_sent_date');
+      if (lastSentDate == todayStr) return;
+
+      final authState = context.read<AuthBloc>().state;
+      String? userEmail;
+      String? userId;
+      if (authState is AuthenticatedUser) {
+        userEmail = authState.user.email;
+        userId = authState.user.userId;
+      } else if (authState is AuthenticatedAdmin) {
+        userEmail = authState.user.email;
+        userId = authState.user.userId;
+      }
+
+      if (userEmail == null || userEmail.isEmpty || userId == null) return;
+
+      final trackerState = context.read<CalorieTrackerCubit>().state;
+      final consumed = trackerState.getConsumedCaloriesForDate(todayStr);
+      final target = trackerState.targetCalories;
+
+      if (consumed < target * 0.8) {
+        final stats = await getIt<FirebaseDataSource>().getUserStats(userId);
+        final remaining = (target - consumed).clamp(0, 99999);
+        final remainingText = Localizations.localeOf(context).languageCode == 'vi'
+            ? 'Bạn cần nạp thêm $remaining kcal nữa để đạt mục tiêu của ngày.'
+            : 'You need to consume $remaining more kcal to reach today\'s target.';
+
+        await EmailService.sendStreakReminder(
+          recipientEmail: userEmail,
+          currentStreak: stats.streak,
+          remainingCalText: remainingText,
+        );
+
+        await prefs.setString('last_streak_email_sent_date', todayStr);
+      }
+    } catch (e) {
+      print('[HomeScreen] Lỗi kiểm tra tự động gửi email nhắc nhở Streak: $e');
     }
   }
 
