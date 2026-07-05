@@ -968,7 +968,7 @@ class HomeScreenState extends State<HomeScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return Container(
           decoration: BoxDecoration(
             color: isDark ? theme.colorScheme.surfaceContainer : Colors.white,
@@ -978,9 +978,9 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ),
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75,
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
           ),
-          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 20),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(sheetContext).padding.bottom + 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1000,7 +1000,7 @@ class HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    Localizations.localeOf(context).languageCode == 'vi'
+                    Localizations.localeOf(sheetContext).languageCode == 'vi'
                         ? 'Món ăn đã nạp hôm nay'
                         : 'Meals Consumed Today',
                     style: theme.textTheme.titleLarge?.copyWith(
@@ -1009,7 +1009,7 @@ class HomeScreenState extends State<HomeScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(sheetContext),
                   ),
                 ],
               ),
@@ -1023,7 +1023,7 @@ class HomeScreenState extends State<HomeScreen> {
                         Icon(Icons.restaurant_menu, size: 48, color: Colors.grey[400]),
                         const SizedBox(height: 12),
                         Text(
-                          Localizations.localeOf(context).languageCode == 'vi'
+                          Localizations.localeOf(sheetContext).languageCode == 'vi'
                               ? 'Hôm nay bạn chưa nạp món ăn nào.'
                               : 'You haven\'t logged any meals today.',
                           style: const TextStyle(color: Colors.grey, fontSize: 14),
@@ -1037,13 +1037,15 @@ class HomeScreenState extends State<HomeScreen> {
                   child: ListView.builder(
                     shrinkWrap: true,
                     itemCount: eatenMeals.length,
-                    itemBuilder: (context, index) {
+                    itemBuilder: (itemContext, index) {
                       final meal = eatenMeals[index];
                       return GestureDetector(
                         onTap: () {
-                          Navigator.pop(context);
+                          Navigator.pop(sheetContext);
                           Future.delayed(const Duration(milliseconds: 200), () {
-                            _showMealDetailSheet(context, meal);
+                            if (context.mounted) {
+                              _showMealDetailSheet(context, meal);
+                            }
                           });
                         },
                         child: Container(
@@ -1079,7 +1081,7 @@ class HomeScreenState extends State<HomeScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      Localizations.localeOf(context).languageCode == 'vi'
+                                      Localizations.localeOf(itemContext).languageCode == 'vi'
                                           ? meal.type
                                           : (meal.type == 'Bữa sáng'
                                               ? 'Breakfast'
