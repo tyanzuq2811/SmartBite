@@ -55,25 +55,16 @@ class _InputHubScreenState extends State<InputHubScreen> with SingleTickerProvid
     final clean = val.trim();
     if (clean.isEmpty) return;
     
-    // Client-side Validation (Regex to strip special symbols, limit to 30 chars)
-    final sanitized = clean.replaceAll(RegExp(r'[^\p{L}\p{N}\s]', unicode: true), '');
-    if (sanitized.length > 30) {
+    if (clean.length > 100) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Tên nguyên liệu không quá 30 ký tự.' : 'Ingredient name cannot exceed 30 characters.'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-    
-    if (sanitized.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Tên nguyên liệu không hợp lệ.' : 'Invalid ingredient name.'), backgroundColor: Colors.red),
+        SnackBar(content: Text(Localizations.localeOf(context).languageCode == 'vi' ? 'Tên nguyên liệu không quá 100 ký tự.' : 'Ingredient name cannot exceed 100 characters.'), backgroundColor: Colors.orange),
       );
       return;
     }
 
     setState(() {
-      if (!_ingredients.contains(sanitized)) {
-        _ingredients.add(sanitized);
+      if (!_ingredients.contains(clean)) {
+        _ingredients.add(clean);
       }
       _textController.clear();
     });
