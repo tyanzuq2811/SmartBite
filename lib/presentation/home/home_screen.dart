@@ -783,78 +783,25 @@ class HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
-                    // Smoothie Việt Quất Card
-                    _buildSavedRecipeCard(
-                      context,
-                      title: 'Smoothie Việt Quất',
-                      sub: '210 kcal • Bữa phụ',
-                      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjMkk0JDqdMeLbvCeuHlvbZOE5LQoLbVF0_9JTZMSELaU1VOTucKjr9W6Q4OzevndSwdw2KNrjEWZaQQdi9IOgguLqCFmfjUTcX698fWt9ZFOvwdiCgTChESeUDgLd9WqsN5V6x0-M4kTpb0ksVFazSicTqnf6yXqndssW4JZ5Skjkd99wUuZ8xgN2u-y5k2DE6JyVhNs-WGZRHljuvMwqD4WJUK0s5GVkMcOno4_13zodAdcp7s574Lsg_HlLGTdTZUUGnGw82i_O',
-                      calories: 210,
-                      isEaten: eatenRecipes['Smoothie Việt Quất'] ?? false,
-                      onEatenToggle: (val) async {
-                        final confirm = await Dialogs.showConfirmDialog(
-                          context: context,
-                          title: Localizations.localeOf(context).languageCode == 'vi' ? 'Xác nhận thay đổi' : 'Confirm Change',
-                          content: Localizations.localeOf(context).languageCode == 'vi'
-                              ? 'Bạn có chắc chắn muốn ${val ? "thêm" : "xóa"} "Smoothie Việt Quất" ${val ? "vào" : "khỏi"} danh sách món ăn đã ăn?'
-                              : 'Are you sure you want to ${val ? "add" : "remove"} "Smoothie Việt Quất" ${val ? "to" : "from"} eaten list?',
-                        );
-                        if (confirm && context.mounted) {
-                          final mealItem = MealItemModel(
-                            type: 'Bữa phụ',
-                            name: 'Smoothie Việt Quất',
-                            calories: 210,
-                            imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjMkk0JDqdMeLbvCeuHlvbZOE5LQoLbVF0_9JTZMSELaU1VOTucKjr9W6Q4OzevndSwdw2KNrjEWZaQQdi9IOgguLqCFmfjUTcX698fWt9ZFOvwdiCgTChESeUDgLd9WqsN5V6x0-M4kTpb0ksVFazSicTqnf6yXqndssW4JZ5Skjkd99wUuZ8xgN2u-y5k2DE6JyVhNs-WGZRHljuvMwqD4WJUK0s5GVkMcOno4_13zodAdcp7s574Lsg_HlLGTdTZUUGnGw82i_O',
-                            swaps: const [],
-                            instructions: smoothieRecipe.instructions,
-                          );
-                          context.read<CalorieTrackerCubit>().toggleEaten(mealItem, _getUserId(context), dateStr);
-                        }
-                      },
-                      recipe: smoothieRecipe,
-                    ),
-                    const SizedBox(height: 12),
 
-                    // Cá Tuyết Hấp Tàu Xì Card
-                    _buildSavedRecipeCard(
-                      context,
-                      title: 'Cá Tuyết Hấp Tàu Xì',
-                      sub: '340 kcal • Bữa trưa',
-                      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQbkrCL1b-kYmHUQwEoXS7-0OVjGa0EUsk7bTYH5SC_NEjDYHtbYR1TFrq8UpvEDzoggt5tQvvGIaSTjYMiDBmTZkW5eKobtHiN1_jM1vYC7PTYphsTfaC4bBgKGuRhunkV-gNpG3sdRh1tcDwXlgOfAryWjoCR5LlBFgfuSUlEDbbrlx-LgNUp7t-CT7jdaX4tF8Gei1w3q7xen2Ro3PmcgGV-a02-dtPHEb_LpUo5utymUXilHruepaN0GLR34TD0A-iq6YfOOoY',
-                      calories: 340,
-                      isEaten: eatenRecipes['Cá Tuyết Hấp Tàu Xì'] ?? false,
-                      onEatenToggle: (val) async {
-                        final confirm = await Dialogs.showConfirmDialog(
-                          context: context,
-                          title: Localizations.localeOf(context).languageCode == 'vi' ? 'Xác nhận thay đổi' : 'Confirm Change',
-                          content: Localizations.localeOf(context).languageCode == 'vi'
-                              ? 'Bạn có chắc chắn muốn ${val ? "thêm" : "xóa"} "Cá Tuyết Hấp Tàu Xì" ${val ? "vào" : "khỏi"} danh sách món ăn đã ăn?'
-                              : 'Are you sure you want to ${val ? "add" : "remove"} "Cá Tuyết Hấp Tàu Xì" ${val ? "to" : "from"} eaten list?',
-                        );
-                        if (confirm && context.mounted) {
-                          final mealItem = MealItemModel(
-                            type: 'Bữa trưa',
-                            name: 'Cá Tuyết Hấp Tàu Xì',
-                            calories: 340,
-                            imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQbkrCL1b-kYmHUQwEoXS7-0OVjGa0EUsk7bTYH5SC_NEjDYHtbYR1TFrq8UpvEDzoggt5tQvvGIaSTjYMiDBmTZkW5eKobtHiN1_jM1vYC7PTYphsTfaC4bBgKGuRhunkV-gNpG3sdRh1tcDwXlgOfAryWjoCR5LlBFgfuSUlEDbbrlx-LgNUp7t-CT7jdaX4tF8Gei1w3q7xen2Ro3PmcgGV-a02-dtPHEb_LpUo5utymUXilHruepaN0GLR34TD0A-iq6YfOOoY',
-                            swaps: const [],
-                            instructions: codRecipe.instructions,
-                          );
-                          context.read<CalorieTrackerCubit>().toggleEaten(mealItem, _getUserId(context), dateStr);
-                        }
-                      },
-                      recipe: codRecipe,
-                    ),
-                    const SizedBox(height: 12),
+                    if (!_isLoadingSaved && _dbSavedRecipes.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0),
+                        child: Text(
+                          Localizations.localeOf(context).languageCode == 'vi'
+                              ? 'Chưa có món ăn nào được lưu. Hãy lưu các món ăn gợi ý từ AI!'
+                              : 'No saved recipes yet. Save recipes generated by AI!',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.white54 : Colors.black54,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
 
                     // SQLite Dynamically Loaded Saved Recipes
                     if (!_isLoadingSaved && _dbSavedRecipes.isNotEmpty)
                       ..._dbSavedRecipes.map((recipe) {
-                        // Avoid duplicating mock items if they were saved in DB
-                        if (recipe.recipeName == 'Smoothie Việt Quất' || recipe.recipeName == 'Cá Tuyết Hấp Tàu Xì') {
-                          return const SizedBox.shrink();
-                        }
                         final isEaten = eatenRecipes[recipe.recipeName] ?? false;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12.0),
